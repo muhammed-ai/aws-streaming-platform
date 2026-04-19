@@ -54,7 +54,11 @@ jobs:
       - name: Terraform Plan
         working-directory: environments/${{ env.ENV }}
         run: terraform plan -out=tfplan
-
+      - name: Build Lambda ZIP
+        run: |
+          cd path/to/your/lambda/code   # change this to your Lambda source folder
+          zip -r ../../lambda.zip .      # adjust output path to match where Terraform expects it
+    
       # Apply only on main branch
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
