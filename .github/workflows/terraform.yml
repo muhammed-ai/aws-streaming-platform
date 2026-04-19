@@ -57,6 +57,7 @@ jobs:
       - name: Build Lambda ZIP
         run: |
           cd modules/lambda
+          rm -f lambda.zip
           zip -r lambda.zip .     
     
       # Apply only on main branch
