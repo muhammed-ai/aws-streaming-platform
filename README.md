@@ -15,4 +15,3 @@ This project demonstrates real-world cloud architecture patterns including:
 ---
 
 ## 🧱 Architecture
-
