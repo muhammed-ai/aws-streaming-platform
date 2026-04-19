@@ -57,7 +57,7 @@ jobs:
       - name: Build Lambda ZIP
         run: |
           cd modules/lambda
-          zip -r ../../lambda.zip .     
+          zip -r lambda.zip .     
     
       # Apply only on main branch
       - name: Terraform Apply
