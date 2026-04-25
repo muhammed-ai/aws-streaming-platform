@@ -53,17 +53,17 @@ Added aws_s3_bucket_notification on the input bucket pointing to the trigger Lam
 Added S3 read/write IAM policy to the MediaConvert role
 Run terraform apply from environments/dev to deploy all connections.
 
-#### 2. Fix IAM permissions
+## 2. Fix IAM permissions
 Lambda needs policies for DynamoDB, S3, and CloudWatch Logs
 MediaConvert role needs S3 read/write permissions
 Right now both are roles with no attached policies — they can't do anything
 
 
-#### 3. Build out the backend
+## 3. Build out the backend
 backend/index.js exists but Lambda isn't deploying it — the CI/CD pipeline needs to zip and upload it
 Add routes to API Gateway (GET /videos, POST /videos, etc.)
 
-### 4. Frontend
+## 4. Frontend
 No frontend exists yet — you'd need a React/Next.js app hosted on the S3 output bucket served via CloudFront
 Integrate Cognito for auth (Amplify makes this straightforward)
 
