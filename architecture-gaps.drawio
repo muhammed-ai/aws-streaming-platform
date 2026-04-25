@@ -1,14 +1,14 @@
 <mxfile host="app.diagrams.net">
   <diagram id="Yzluew1ZivUhxWx-8IzN" name="Page-1">
-    <mxGraphModel dx="3318" dy="2123" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3422" dy="2183" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
-          <mxGeometry height="970" width="1730" x="-54.55" y="-40" as="geometry" />
+          <mxGeometry height="1000" width="1730" x="-49.78" y="-70" as="geometry" />
         </mxCell>
         <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1a1a2e;" value="&lt;font style=&quot;color: rgb(255, 255, 255); background-color: light-dark(rgb(204, 0, 0), rgb(237, 237, 237)); font-size: 33px;&quot;&gt;NETFLIX Clone — Integrations&lt;/font&gt;" vertex="1">
-          <mxGeometry height="51" width="518.72" x="530.64" y="-40" as="geometry" />
+          <mxGeometry height="51" width="518.72" x="555.86" y="-70" as="geometry" />
         </mxCell>
         <mxCell id="leg_bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" value="" vertex="1">
           <mxGeometry height="130" width="220" x="40" y="60" as="geometry" />
@@ -45,7 +45,7 @@
         <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" value="👤 User / Browser" vertex="1">
           <mxGeometry height="40" width="160" x="735.22" y="73" as="geometry" />
         </mxCell>
-        <mxCell id="cognito" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;🔐 Cognito User Pool&lt;br&gt;netflix-users-dev&lt;/font&gt;" vertex="1">
+        <mxCell id="cognito" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=13;" value="&lt;font&gt;🔐 Cognito User Pool&lt;br&gt;netflix-users-dev&lt;/font&gt;" vertex="1">
           <mxGeometry height="40" width="140" x="1230" y="190" as="geometry" />
         </mxCell>
         <mxCell id="e_user_cognito" edge="1" parent="1" source="user" style="endArrow=block;endFill=1;strokeColor=#388e3c;strokeWidth=2;fontSize=14;flowAnimation=1;startSize=11;fontStyle=1" target="hp1nNOI45ZV0TVRCNbsO-1" value="Auth">
@@ -65,7 +65,7 @@
         <mxCell id="e_user_waf" edge="1" parent="1" source="user" style="endArrow=block;endFill=1;strokeColor=#388e3c;strokeWidth=2;flowAnimation=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;fontStyle=1" target="hp1nNOI45ZV0TVRCNbsO-9" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_waf_cf" edge="1" parent="1" source="waf" style="endArrow=block;endFill=1;strokeColor=#388e3c;strokeWidth=2;textShadow=0;flowAnimation=1;fontStyle=1" target="cf" value="">
+        <mxCell id="e_waf_cf" edge="1" parent="1" source="hp1nNOI45ZV0TVRCNbsO-9" style="endArrow=block;endFill=1;strokeColor=#388e3c;strokeWidth=2;textShadow=0;flowAnimation=1;fontStyle=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" target="hp1nNOI45ZV0TVRCNbsO-10" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e_user_apigw" edge="1" parent="1" source="user" style="endArrow=block;endFill=1;strokeColor=#388E3C;strokeWidth=2;flowAnimation=1;fontStyle=1" target="hp1nNOI45ZV0TVRCNbsO-11" value="">
@@ -79,7 +79,7 @@
         <mxCell id="lambda" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;⚡ Lambda Function&lt;br&gt;netflix-api-dev&lt;br&gt;(nodejs18.x)&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="160" x="995" y="442" as="geometry" />
         </mxCell>
-        <mxCell id="iam_lambda" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;🔑 IAM Role&lt;br&gt;netflix-lambda-role-dev&lt;br&gt;(no policies attached)&lt;/font&gt;" vertex="1">
+        <mxCell id="iam_lambda" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" value="&lt;font&gt;🔑 IAM Role&lt;br&gt;netflix-lambda-role-dev&lt;br&gt;(no policies attached)&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="160" x="1480" y="455.5" as="geometry" />
         </mxCell>
         <mxCell id="m_apigw_lambda" edge="1" parent="1" source="apigw" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;exitX=0.5;exitY=1;exitDx=0;exitDy=0;flowAnimation=1;" value="❌ Missing&#xa;aws_apigatewayv2_integration&#xa;+ aws_apigatewayv2_route&#xa;Routes requests to Lambda">
@@ -99,11 +99,11 @@
         <mxCell id="s3in" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;🪣 S3 Input Bucket&lt;br&gt;netflix-dev-input&lt;/font&gt;" vertex="1">
           <mxGeometry height="45" width="160" x="30" y="455.5" as="geometry" />
         </mxCell>
-        <mxCell id="s3out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;🪣 S3 Output Bucket&lt;br&gt;netflix-dev-output&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="140" x="440" y="605" as="geometry" />
-        </mxCell>
         <mxCell id="ddb" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="🗄️ DynamoDB&#xa;videos-dev&#xa;(hash: video_id)" vertex="1">
-          <mxGeometry height="60" width="160" x="1000" y="770" as="geometry" />
+          <mxGeometry height="60" width="160" x="973.77" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="s3out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;🪣 S3 Output Bucket&lt;br&gt;netflix-dev-output&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="140" x="450" y="599" as="geometry" />
         </mxCell>
         <mxCell id="m_cf_s3out" edge="1" parent="1" source="cf" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;flowAnimation=1;" target="hp1nNOI45ZV0TVRCNbsO-12" value="❌ Missing OAC&#xa;(Origin Access Control)&#xa;CloudFront can&#39;t read&#xa;private S3 bucket">
           <mxGeometry relative="1" as="geometry">
@@ -113,23 +113,24 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="m_lambda_ddb" edge="1" parent="1" source="lambda" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;exitX=0.354;exitY=1.008;exitDx=0;exitDy=0;exitPerimeter=0;flowAnimation=1;" target="ddb" value="❌ Missing IAM policy&#xa;Lambda has no permission&#xa;to read/write DynamoDB">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="m_lambda_ddb" edge="1" parent="1" source="lambda" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;exitX=0.354;exitY=1.008;exitDx=0;exitDy=0;exitPerimeter=0;flowAnimation=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="qoirRR4ypZUMS6ivp0K0-4" value="❌ Missing IAM policy&#xa;Lambda has no permission&#xa;to read/write DynamoDB">
+          <mxGeometry relative="1" x="-0.5434" y="7" as="geometry">
+            <mxPoint as="offset" />
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="mc_role" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="🎬 MediaConvert&#xa;IAM Role&#xa;mediaconvert-role-dev&#xa;(no policies attached)" vertex="1">
-          <mxGeometry height="80" width="160" x="145" y="750" as="geometry" />
+        <mxCell id="mc_role" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" value="🎬 MediaConvert&#xa;IAM Role&#xa;mediaconvert-role-dev&#xa;(no policies attached)" vertex="1">
+          <mxGeometry height="80" width="160" x="147.5" y="770" as="geometry" />
         </mxCell>
-        <mxCell id="m_s3in_mc" edge="1" parent="1" source="hp1nNOI45ZV0TVRCNbsO-15" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;flowAnimation=1;" target="mc_role" value="❌ Missing S3 Event Notification&#xa;+ Lambda trigger&#xa;Uploads don&#39;t start&#xa;MediaConvert jobs">
+        <mxCell id="m_s3in_mc" edge="1" parent="1" source="hp1nNOI45ZV0TVRCNbsO-15" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="mc_role" value="❌ Missing S3 Event Notification&#xa;+ Lambda trigger&#xa;Uploads don&#39;t start&#xa;MediaConvert jobs">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="m_mc_s3out" edge="1" parent="1" source="mc_role" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;flowAnimation=1;" target="hp1nNOI45ZV0TVRCNbsO-12" value="❌ Missing IAM policy&#xa;MediaConvert needs S3&#xa;read input + write output">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="m_mc_s3out" edge="1" parent="1" source="mc_role" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="hp1nNOI45ZV0TVRCNbsO-12" value="❌ Missing IAM policy&#xa;MediaConvert needs S3&#xa;read input + write output">
+          <mxGeometry relative="1" x="-0.5214" y="30" as="geometry">
+            <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="420" y="800" />
-              <mxPoint x="620" y="800" />
-              <mxPoint x="620" y="720" />
+              <mxPoint x="420" y="810" />
+              <mxPoint x="630" y="810" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -161,7 +162,7 @@
           <mxGeometry height="80" width="80" x="1000" y="202" as="geometry" />
         </mxCell>
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-12" parent="1" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.bucket_with_objects;" value="" vertex="1">
-          <mxGeometry height="78" width="75" x="580" y="585" as="geometry" />
+          <mxGeometry height="78" width="75" x="590" y="585" as="geometry" />
         </mxCell>
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-15" parent="1" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.bucket_with_objects;" value="" vertex="1">
           <mxGeometry height="78" width="75" x="190" y="438" as="geometry" />
@@ -174,6 +175,9 @@
         </mxCell>
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-20" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" value="" vertex="1">
           <mxGeometry height="70" width="70" x="925" y="442" as="geometry" />
+        </mxCell>
+        <mxCell id="qoirRR4ypZUMS6ivp0K0-4" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" value="" vertex="1">
+          <mxGeometry height="78" width="78" x="1014.77" y="692" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
