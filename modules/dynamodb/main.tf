@@ -8,3 +8,7 @@ resource "aws_dynamodb_table" "videos" {
     type = "S"
   }
 }
+
+output "table_arn" {
+  value = aws_dynamodb_table.videos.arn
+}

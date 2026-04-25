@@ -1,7 +1,15 @@
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                              = "netflix-oac-${var.env}"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
-    domain_name = var.bucket_domain
-    origin_id   = "s3-origin"
+    domain_name              = var.bucket_domain
+    origin_id                = "s3-origin"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
   enabled = true
@@ -35,4 +43,8 @@ resource "aws_cloudfront_distribution" "cdn" {
 
 output "domain_name" {
   value = aws_cloudfront_distribution.cdn.domain_name
+}
+
+output "distribution_arn" {
+  value = aws_cloudfront_distribution.cdn.arn
 }
