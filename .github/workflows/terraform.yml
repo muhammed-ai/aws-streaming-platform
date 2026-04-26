@@ -40,6 +40,7 @@ jobs:
         run: |
           cd backend
           npm install
+          rm -f ../modules/lambda/lambda.zip
           zip -r ../modules/lambda/lambda.zip .
 
       # Pick environment (default: dev)
