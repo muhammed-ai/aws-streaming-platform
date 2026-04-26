@@ -87,12 +87,16 @@ data "archive_file" "trigger" {
 
   source {
     content  = <<-EOF
-      const AWS = require('aws-sdk');
-      const mc = new AWS.MediaConvert({ endpoint: process.env.MC_ENDPOINT });
+      const { MediaConvertClient, CreateJobCommand } = require('@aws-sdk/client-mediaconvert');
+
+      // SDK v3 — client is initialised with the account-specific regional endpoint
+      const mc = new MediaConvertClient({ endpoint: process.env.MC_ENDPOINT });
+
       exports.handler = async (event) => {
-        const key = event.Records[0].s3.object.key;
+        const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
         const bucket = event.Records[0].s3.bucket.name;
-        await mc.createJob({
+
+        const command = new CreateJobCommand({
           Role: process.env.MC_ROLE_ARN,
           Settings: {
             Inputs: [{ FileInput: 's3://' + bucket + '/' + key }],
@@ -104,7 +108,9 @@ data "archive_file" "trigger" {
               Outputs: [{ Preset: 'System-Avc_16x9_1080p_29_97fps_8500kbps_qvbr' }]
             }]
           }
-        }).promise();
+        });
+
+        await mc.send(command);
       };
     EOF
     filename = "index.js"
