@@ -2,16 +2,20 @@ provider "aws" {
   region = var.region
 }
 
+# Networking — creates the VPC, subnets, and internet gateway
 module "networking" {
   source = "../../modules/networking"
   env    = var.env
 }
 
+# WAF — must be created before CloudFront since CloudFront needs the WAF ARN
 module "waf" {
   source = "../../modules/waf"
   env    = var.env
 }
 
+# S3 — depends on CloudFront because the output bucket policy needs the CloudFront distribution ARN
+# to restrict S3 access to only this distribution via OAC
 module "s3" {
   source                      = "../../modules/s3"
   env                         = var.env
@@ -19,6 +23,8 @@ module "s3" {
   depends_on                  = [module.cloudfront]
 }
 
+# CloudFront — serves transcoded video from the S3 output bucket, protected by WAF
+# bucket_domain is hardcoded to break the circular dependency between S3 and CloudFront
 module "cloudfront" {
   source        = "../../modules/cloudfront"
   env           = var.env
@@ -26,11 +32,13 @@ module "cloudfront" {
   web_acl_id    = module.waf.web_acl_id
 }
 
+# DynamoDB — stores video metadata, created before Lambda since Lambda needs the table ARN for IAM policy
 module "dynamodb" {
   source = "../../modules/dynamodb"
   env    = var.env
 }
 
+# Lambda — main API function, wired to DynamoDB and S3 via IAM policies
 module "lambda" {
   source              = "../../modules/lambda"
   env                 = var.env
@@ -38,6 +46,7 @@ module "lambda" {
   s3_input_bucket_arn = module.s3.input_bucket_arn
 }
 
+# API Gateway — HTTP API that routes all requests to the Lambda function
 module "api" {
   source               = "../../modules/api_gateway"
   env                  = var.env
@@ -45,11 +54,14 @@ module "api" {
   lambda_function_name = module.lambda.function_name
 }
 
+# Cognito — user authentication pool for the frontend
 module "cognito" {
   source = "../../modules/cognito"
   env    = var.env
 }
 
+# MediaConvert — transcoding pipeline triggered automatically when videos are uploaded to S3 input bucket
+# output_bucket_arn and output_bucket_id are passed directly to avoid a circular dependency with the S3 module
 module "mediaconvert" {
   source            = "../../modules/mediaconvert"
   env               = var.env

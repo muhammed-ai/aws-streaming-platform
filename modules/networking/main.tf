@@ -1,7 +1,8 @@
 # VPC — isolated network for the Netflix clone infrastructure
 # 10.1.0.0/16 gives 65,536 IP addresses across all subnets
+
 resource "aws_vpc" "main" {
-  cidr_block = "10.1.0.0/16"
+  cidr_block = "10.0.0.0/16"
 
   tags = {
     Name = "netflix-${var.env}-vpc"
