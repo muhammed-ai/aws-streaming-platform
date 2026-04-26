@@ -53,16 +53,16 @@ Added aws_s3_bucket_notification on the input bucket pointing to the trigger Lam
 Added S3 read/write IAM policy to the MediaConvert role
 Run terraform apply from environments/dev to deploy all connections.
 
-- - Here's the plan before making changes:
-- - modules/api_gateway/main.tf — add Lambda integration, route, permission, and stage. Needs lambda_invoke_arn and lambda_function_name as new variables
+ - Here's the plan before making changes:
+ - modules/api_gateway/main.tf — add Lambda integration, route, permission, and stage. Needs lambda_invoke_arn and lambda_function_name as new variables
 
-- - modules/lambda/main.tf — add IAM policies for DynamoDB, S3, and CloudWatch Logs. Needs       dynamodb_table_arn and s3_input_bucket_arn as new variables
+ - modules/lambda/main.tf — add IAM policies for DynamoDB, S3, and CloudWatch Logs. Needs       dynamodb_table_arn and s3_input_bucket_arn as new variables
 
-- - modules/cloudfront/main.tf — add OAC and wire it to the S3 origin. Needs output_bucket_id as a new variable
+ - modules/cloudfront/main.tf — add OAC and wire it to the S3 origin. Needs output_bucket_id as a new variable
 
-- - modules/s3/main.tf — add bucket policy allowing CloudFront OAC access. Needs cloudfront_distribution_arn as new variable + output for bucket id
+ - modules/s3/main.tf — add bucket policy allowing CloudFront OAC access. Needs cloudfront_distribution_arn as new variable + output for bucket id
 
-- - modules/mediaconvert/main.tf — add S3 read/write policy + S3 event notification trigger via Lambda
+ - modules/mediaconvert/main.tf — add S3 read/write policy + S3 event notification trigger via Lambda
 environments/dev/main.tf — wire all the new variables between modules
 
 ## 2. Fix IAM permissions
