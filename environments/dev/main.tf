@@ -13,10 +13,10 @@ module "waf" {
 }
 
 module "s3" {
-  source                     = "../../modules/s3"
-  env                        = var.env
+  source                      = "../../modules/s3"
+  env                         = var.env
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
-  depends_on                 = [module.cloudfront]
+  depends_on                  = [module.cloudfront]
 }
 
 module "cloudfront" {
@@ -32,10 +32,10 @@ module "dynamodb" {
 }
 
 module "lambda" {
-  source               = "../../modules/lambda"
-  env                  = var.env
-  dynamodb_table_arn   = module.dynamodb.table_arn
-  s3_input_bucket_arn  = module.s3.input_bucket_arn
+  source              = "../../modules/lambda"
+  env                 = var.env
+  dynamodb_table_arn  = module.dynamodb.table_arn
+  s3_input_bucket_arn = module.s3.input_bucket_arn
 }
 
 module "api" {
@@ -51,11 +51,11 @@ module "cognito" {
 }
 
 module "mediaconvert" {
-  source             = "../../modules/mediaconvert"
-  env                = var.env
-  region             = var.region
-  input_bucket_arn   = module.s3.input_bucket_arn
-  input_bucket_id    = module.s3.input_bucket_id
-  output_bucket_arn  = "arn:aws:s3:::netflix-${var.env}-output"
-  output_bucket_id   = "netflix-${var.env}-output"
+  source            = "../../modules/mediaconvert"
+  env               = var.env
+  region            = var.region
+  input_bucket_arn  = module.s3.input_bucket_arn
+  input_bucket_id   = module.s3.input_bucket_id
+  output_bucket_arn = "arn:aws:s3:::netflix-${var.env}-output"
+  output_bucket_id  = "netflix-${var.env}-output"
 }

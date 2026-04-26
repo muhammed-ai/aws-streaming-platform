@@ -109,8 +109,8 @@ resource "aws_lambda_function" "trigger" {
 
   environment {
     variables = {
-      MC_ROLE_ARN  = aws_iam_role.mediaconvert.arn
-      MC_ENDPOINT  = "https://mediaconvert.${var.region}.amazonaws.com"
+      MC_ROLE_ARN = aws_iam_role.mediaconvert.arn
+      MC_ENDPOINT = "https://mediaconvert.${var.region}.amazonaws.com"
     }
   }
 }
