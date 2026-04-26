@@ -65,11 +65,6 @@ jobs:
         working-directory: environments/${{ env.ENV }}
         run: terraform state list
 
-      # Force redeploy of mediaconvert trigger Lambda — removes it from state so Terraform recreates it
-      - name: Taint MediaConvert Trigger Lambda
-        working-directory: environments/${{ env.ENV }}
-        run: terraform taint module.mediaconvert.aws_lambda_function.trigger || true
-
       - name: Terraform Plan
         working-directory: environments/${{ env.ENV }}
         run: terraform plan -out=tfplan

@@ -109,7 +109,7 @@ resource "aws_lambda_function" "trigger" {
 # Grants S3 permission to invoke the trigger Lambda
 # source_arn scopes it to only the input bucket — other buckets cannot trigger this Lambda
 resource "aws_lambda_permission" "s3" {
-  statement_id  = "AllowS3Invoke"
+  statement_id  = "AllowS3Invoke-v2"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.trigger.function_name
   principal     = "s3.amazonaws.com"
