@@ -90,11 +90,12 @@ data "archive_file" "trigger" {
 # The trigger Lambda — invoked automatically by S3 when a file is uploaded to the input bucket
 # Starts a MediaConvert job to transcode the video to HLS format for streaming
 resource "aws_lambda_function" "trigger" {
-  function_name = "mediaconvert-trigger-${var.env}"
-  runtime       = "nodejs18.x"
-  handler       = "index.handler"
-  role          = aws_iam_role.trigger_lambda_role.arn
-  filename      = data.archive_file.trigger.output_path
+  function_name    = "mediaconvert-trigger-${var.env}"
+  runtime          = "nodejs18.x"
+  handler          = "index.handler"
+  role             = aws_iam_role.trigger_lambda_role.arn
+  filename         = data.archive_file.trigger.output_path
+  source_code_hash = data.archive_file.trigger.output_base64sha256
 
   environment {
     variables = {
