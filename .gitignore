@@ -7,6 +7,5 @@
 crash.log
 
 # Lambda build artifacts — built fresh in CI, never commit zips
-*.zip
 modules/lambda/lambda.zip
 modules/mediaconvert/trigger.zip

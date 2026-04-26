@@ -79,42 +79,12 @@ resource "aws_iam_role_policy" "trigger_lambda_policy" {
   })
 }
 
-# Packages the trigger Lambda inline code into a zip at plan/apply time
-# The code reads the uploaded S3 object key and submits a MediaConvert HLS transcoding job
+# Packages the trigger Lambda code into a zip at plan/apply time
+# Source lives in trigger/index.js — built separately from the API Lambda
 data "archive_file" "trigger" {
   type        = "zip"
   output_path = "${path.module}/trigger.zip"
-
-  source {
-    content  = <<-EOF
-      const { MediaConvertClient, CreateJobCommand } = require('@aws-sdk/client-mediaconvert');
-
-      // SDK v3 — client is initialised with the account-specific regional endpoint
-      const mc = new MediaConvertClient({ endpoint: process.env.MC_ENDPOINT });
-
-      exports.handler = async (event) => {
-        const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
-        const bucket = event.Records[0].s3.bucket.name;
-
-        const command = new CreateJobCommand({
-          Role: process.env.MC_ROLE_ARN,
-          Settings: {
-            Inputs: [{ FileInput: 's3://' + bucket + '/' + key }],
-            OutputGroups: [{
-              OutputGroupSettings: {
-                Type: 'HLS_GROUP_SETTINGS',
-                HlsGroupSettings: { Destination: 's3://${var.output_bucket_id}/' + key.split('.')[0] + '/' }
-              },
-              Outputs: [{ Preset: 'System-Avc_16x9_1080p_29_97fps_8500kbps_qvbr' }]
-            }]
-          }
-        });
-
-        await mc.send(command);
-      };
-    EOF
-    filename = "index.js"
-  }
+  source_dir  = "${path.module}/trigger"
 }
 
 # The trigger Lambda — invoked automatically by S3 when a file is uploaded to the input bucket
@@ -128,9 +98,9 @@ resource "aws_lambda_function" "trigger" {
 
   environment {
     variables = {
-      MC_ROLE_ARN = aws_iam_role.mediaconvert.arn
-      # MediaConvert requires a regional endpoint — the global endpoint does not work for job submission
-      MC_ENDPOINT = "https://mediaconvert.${var.region}.amazonaws.com"
+      MC_ROLE_ARN   = aws_iam_role.mediaconvert.arn
+      MC_ENDPOINT   = "https://mediaconvert.${var.region}.amazonaws.com"
+      OUTPUT_BUCKET = var.output_bucket_id
     }
   }
 }
