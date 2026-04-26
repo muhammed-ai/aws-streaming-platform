@@ -1,3 +1,5 @@
+# IAM role that MediaConvert assumes when running transcoding jobs
+# MediaConvert needs this role to read from the input bucket and write to the output bucket
 resource "aws_iam_role" "mediaconvert" {
   name = "mediaconvert-role-${var.env}"
 
@@ -10,6 +12,8 @@ resource "aws_iam_role" "mediaconvert" {
   })
 }
 
+# Grants MediaConvert read access to the input bucket and write access to the output bucket
+# Without this, MediaConvert jobs would fail with an access denied error on S3
 resource "aws_iam_role_policy" "s3" {
   name = "mediaconvert-s3-${var.env}"
   role = aws_iam_role.mediaconvert.id
@@ -31,6 +35,7 @@ resource "aws_iam_role_policy" "s3" {
   })
 }
 
+# IAM role for the trigger Lambda — separate from the main API Lambda role
 resource "aws_iam_role" "trigger_lambda_role" {
   name = "mediaconvert-trigger-role-${var.env}"
 
@@ -44,6 +49,10 @@ resource "aws_iam_role" "trigger_lambda_role" {
   })
 }
 
+# Grants the trigger Lambda permission to:
+# - Create MediaConvert jobs
+# - Pass the MediaConvert IAM role to the job (iam:PassRole is required when passing a role to another service)
+# - Write logs to CloudWatch for debugging
 resource "aws_iam_role_policy" "trigger_lambda_policy" {
   name = "mediaconvert-trigger-policy-${var.env}"
   role = aws_iam_role.trigger_lambda_role.id
@@ -70,6 +79,8 @@ resource "aws_iam_role_policy" "trigger_lambda_policy" {
   })
 }
 
+# Packages the trigger Lambda inline code into a zip at plan/apply time
+# The code reads the uploaded S3 object key and submits a MediaConvert HLS transcoding job
 data "archive_file" "trigger" {
   type        = "zip"
   output_path = "${path.module}/trigger.zip"
@@ -100,6 +111,8 @@ data "archive_file" "trigger" {
   }
 }
 
+# The trigger Lambda — invoked automatically by S3 when a file is uploaded to the input bucket
+# Starts a MediaConvert job to transcode the video to HLS format for streaming
 resource "aws_lambda_function" "trigger" {
   function_name = "mediaconvert-trigger-${var.env}"
   runtime       = "nodejs18.x"
@@ -110,11 +123,14 @@ resource "aws_lambda_function" "trigger" {
   environment {
     variables = {
       MC_ROLE_ARN = aws_iam_role.mediaconvert.arn
+      # MediaConvert requires a regional endpoint — the global endpoint does not work for job submission
       MC_ENDPOINT = "https://mediaconvert.${var.region}.amazonaws.com"
     }
   }
 }
 
+# Grants S3 permission to invoke the trigger Lambda
+# source_arn scopes it to only the input bucket — other buckets cannot trigger this Lambda
 resource "aws_lambda_permission" "s3" {
   statement_id  = "AllowS3Invoke"
   action        = "lambda:InvokeFunction"
@@ -123,6 +139,8 @@ resource "aws_lambda_permission" "s3" {
   source_arn    = var.input_bucket_arn
 }
 
+# Configures the input bucket to fire an event whenever a file is uploaded
+# This is what automatically kicks off the MediaConvert transcoding pipeline
 resource "aws_s3_bucket_notification" "trigger" {
   bucket = var.input_bucket_id
 
@@ -131,5 +149,7 @@ resource "aws_s3_bucket_notification" "trigger" {
     events              = ["s3:ObjectCreated:*"]
   }
 
+  # Lambda permission must exist before the notification is created
+  # otherwise S3 cannot validate it has permission to invoke the function
   depends_on = [aws_lambda_permission.s3]
 }

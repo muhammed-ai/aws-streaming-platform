@@ -1,3 +1,4 @@
+# IAM role that Lambda assumes at runtime — required for any Lambda function to execute
 resource "aws_iam_role" "lambda_role" {
   name = "netflix-lambda-role-${var.env}"
 
@@ -11,11 +12,14 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
+# Attaches AWS managed policy for basic Lambda execution — allows writing logs to CloudWatch
 resource "aws_iam_role_policy_attachment" "logs" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Allows Lambda to read and write video metadata in DynamoDB
+# Scoped to only the videos table — not all DynamoDB tables in the account
 resource "aws_iam_role_policy" "dynamodb" {
   name = "lambda-dynamodb-${var.env}"
   role = aws_iam_role.lambda_role.id
@@ -30,6 +34,8 @@ resource "aws_iam_role_policy" "dynamodb" {
   })
 }
 
+# Allows Lambda to read uploaded videos from the input S3 bucket
+# Needed to access video files when generating signed CloudFront URLs
 resource "aws_iam_role_policy" "s3" {
   name = "lambda-s3-${var.env}"
   role = aws_iam_role.lambda_role.id
@@ -44,6 +50,8 @@ resource "aws_iam_role_policy" "s3" {
   })
 }
 
+# The main API Lambda function — handles all requests from API Gateway
+# Runs the backend/index.js handler which generates signed CloudFront URLs for video playback
 resource "aws_lambda_function" "api" {
   function_name = "netflix-api-${var.env}"
   runtime       = "nodejs18.x"
@@ -52,10 +60,12 @@ resource "aws_lambda_function" "api" {
   filename      = "${path.module}/lambda.zip"
 }
 
+# Exposes the Lambda invoke ARN — used by API Gateway to wire up the integration
 output "invoke_arn" {
   value = aws_lambda_function.api.invoke_arn
 }
 
+# Exposes the function name — used by API Gateway to grant invoke permission
 output "function_name" {
   value = aws_lambda_function.api.function_name
 }
