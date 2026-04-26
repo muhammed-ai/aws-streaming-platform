@@ -19,17 +19,48 @@ exports.handler = async (event) => {
   const command = new CreateJobCommand({
     Role: process.env.MC_ROLE_ARN,
     Settings: {
-      Inputs: [{ FileInput: `s3://${bucket}/${key}` }],
+      Inputs: [{
+        FileInput: `s3://${bucket}/${key}`,
+        AudioSelectors: { "Audio Selector 1": { DefaultSelection: "DEFAULT" } },
+        VideoSelector: {},
+        TimecodeSource: "ZEROBASED"
+      }],
       OutputGroups: [
         {
+          Name: "HLS Group",
           OutputGroupSettings: {
             Type: "HLS_GROUP_SETTINGS",
             HlsGroupSettings: {
               Destination: `s3://${process.env.OUTPUT_BUCKET}/${outputPrefix}/`,
+              SegmentLength: 6,
+              MinSegmentLength: 0,
             },
           },
           Outputs: [
-            { Preset: "System-Avc_16x9_1080p_29_97fps_8500kbps_qvbr" },
+            {
+              NameModifier: "_1080p",
+              ContainerSettings: { Container: "M3U8", M3u8Settings: {} },
+              VideoDescription: {
+                Width: 1920,
+                Height: 1080,
+                CodecSettings: {
+                  Codec: "H_264",
+                  H264Settings: {
+                    Bitrate: 5000000,
+                    RateControlMode: "CBR",
+                    CodecProfile: "HIGH",
+                    CodecLevel: "AUTO",
+                    FramerateControl: "INITIALIZE_FROM_SOURCE",
+                  },
+                },
+              },
+              AudioDescriptions: [{
+                CodecSettings: {
+                  Codec: "AAC",
+                  AacSettings: { Bitrate: 96000, SampleRate: 48000, CodingMode: "CODING_MODE_2_0" },
+                },
+              }],
+            },
           ],
         },
       ],
