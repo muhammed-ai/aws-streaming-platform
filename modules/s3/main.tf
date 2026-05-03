@@ -10,6 +10,15 @@ resource "aws_s3_bucket" "output" {
   bucket = "netflix-${var.env}-output"
 }
 
+# Block all public access — content is only accessible via CloudFront OAC
+resource "aws_s3_bucket_public_access_block" "output" {
+  bucket                  = aws_s3_bucket.output.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 # Bucket policy that allows only the CloudFront distribution to read from the output bucket
 # The AWS:SourceArn condition ensures no other CloudFront distribution can access this bucket
 resource "aws_s3_bucket_policy" "output" {

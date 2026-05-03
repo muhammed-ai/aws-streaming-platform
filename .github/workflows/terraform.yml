@@ -35,42 +35,33 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Build Lambda ZIP from backend/ before Terraform plan so the zip exists when plan runs
-      - name: Build Lambda ZIP
-        run: |
-          cd backend
-          npm install
-          rm -f ../modules/lambda/lambda.zip
-          zip -r ../modules/lambda/lambda.zip .
-
       # Pick environment (default: dev)
       - name: Select environment
         run: echo "ENV=dev" >> $GITHUB_ENV
 
-      # -reconfigure forces re-initialisation of the backend on every run
       - name: Terraform Init
         working-directory: environments/${{ env.ENV }}
-        run: terraform init -reconfigure
+        run: terraform init
 
       - name: Terraform Format Check
         working-directory: environments/${{ env.ENV }}
-        run: terraform fmt -check -recursive
+        run: terraform fmt -check
 
       - name: Terraform Validate
         working-directory: environments/${{ env.ENV }}
         run: terraform validate
 
-      # Shows all resources currently tracked in Terraform state — helps debug missing resources
-      - name: Terraform State List
-        working-directory: environments/${{ env.ENV }}
-        run: terraform state list
-
       - name: Terraform Plan
         working-directory: environments/${{ env.ENV }}
         run: terraform plan -out=tfplan
-
-      # Apply only on main branch pushes — not on pull requests
+      - name: Build Lambda ZIP
+        run: |
+          cd modules/lambda
+          rm -f lambda.zip
+          zip -r ../../lambda.zip .     
+    
+      # Apply only on main branch
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main'
         working-directory: environments/${{ env.ENV }}
         run: terraform apply -auto-approve tfplan

@@ -24,11 +24,11 @@ module "s3" {
 }
 
 # CloudFront — serves transcoded video from the S3 output bucket, protected by WAF
-# bucket_domain is hardcoded to break the circular dependency between S3 and CloudFront
+# Uses regional S3 domain required by OAC — format: bucket.s3.region.amazonaws.com
 module "cloudfront" {
   source        = "../../modules/cloudfront"
   env           = var.env
-  bucket_domain = "netflix-${var.env}-output.s3.amazonaws.com"
+  bucket_domain = "netflix-${var.env}-output.s3.us-east-1.amazonaws.com"
   web_acl_id    = module.waf.web_acl_id
 }
 
