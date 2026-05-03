@@ -53,12 +53,14 @@ resource "aws_iam_role_policy" "s3" {
 # The main API Lambda function — handles all requests from API Gateway
 # Runs the backend/index.js handler which generates signed CloudFront URLs for video playback
 resource "aws_lambda_function" "api" {
-  function_name    = "netflix-api-${var.env}"
-  runtime          = "nodejs18.x"
-  handler          = "index.handler"
-  role             = aws_iam_role.lambda_role.arn
-  filename         = "${path.module}/lambda.zip"
-  source_code_hash = filebase64sha256("${path.module}/lambda.zip")
+  function_name = "netflix-api-${var.env}"
+  runtime       = "nodejs18.x"
+  handler       = "index.handler"
+  role          = aws_iam_role.lambda_role.arn
+  filename      = "${path.module}/lambda.zip"
+
+  # Only set source_code_hash if the zip exists — avoids plan-time error in CI before build step
+  source_code_hash = fileexists("${path.module}/lambda.zip") ? filebase64sha256("${path.module}/lambda.zip") : null
 }
 
 # Exposes the Lambda invoke ARN — used by API Gateway to wire up the integration
