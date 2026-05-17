@@ -100,12 +100,15 @@ jobs:
             exit 0
           fi
 
-          # Inject the API endpoint into the HTML so the browser knows where to call
-          sed "s|window.API_ENDPOINT || \".*\"|\"${API_ENDPOINT}\"|g" \
-            ../../frontend/index.html > /tmp/index.html
+          # Write the API endpoint into a config.js file loaded by the frontend
+          echo "window.API_ENDPOINT = \"${API_ENDPOINT}\";" > /tmp/config.js
 
-          # Upload to S3
-          aws s3 cp /tmp/index.html s3://${FRONTEND_BUCKET}/index.html \
+          # Upload both files to S3
+          aws s3 cp /tmp/config.js s3://${FRONTEND_BUCKET}/config.js \
+            --content-type "application/javascript" \
+            --cache-control "no-cache"
+
+          aws s3 cp ../../frontend/index.html s3://${FRONTEND_BUCKET}/index.html \
             --content-type "text/html" \
             --cache-control "no-cache"
 
