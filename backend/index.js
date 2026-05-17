@@ -95,12 +95,12 @@ async function getManifest(videoId) {
   const outputKey = result.Item.output_key;
   const folder    = outputKey.substring(0, outputKey.lastIndexOf("/") + 1);
 
-  // Fetch manifest from S3
+  // Fetch manifest from S3 using raw key (S3 API needs unencoded key)
   let manifestContent;
   try {
     const s3Obj = await s3.send(new GetObjectCommand({
       Bucket: OUTPUT_BUCKET,
-      Key:    outputKey,
+      Key:    outputKey,  // raw key with spaces — S3 SDK handles encoding internally
     }));
     manifestContent = await s3Obj.Body.transformToString("utf-8");
   } catch (err) {
@@ -109,12 +109,15 @@ async function getManifest(videoId) {
   }
 
   // Rewrite .ts segment lines with signed CloudFront URLs
+  // encodeURIComponent the key so spaces and special chars are properly encoded in the signed URL
   const rewritten = manifestContent
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
       if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
-        return signedUrl(folder + trimmed);
+        const fullKey = folder + trimmed;
+        const encodedKey = fullKey.split("/").map(encodeURIComponent).join("/");
+        return signedUrl(encodedKey);
       }
       return line;
     })
