@@ -67,3 +67,13 @@ output "input_bucket_arn" {
 output "input_bucket_id" {
   value = aws_s3_bucket.input.id
 }
+
+# Exposes the output bucket ARN — used by Lambda IAM policy for manifest proxy
+output "output_bucket_arn" {
+  value = aws_s3_bucket.output.arn
+}
+
+# Exposes the output bucket name — used by Lambda env var for manifest proxy
+output "output_bucket_id" {
+  value = aws_s3_bucket.output.id
+}

@@ -8,6 +8,8 @@ resource "aws_apigatewayv2_api" "api" {
     allow_origins = [var.frontend_domain, "http://localhost:3000"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]
+    expose_headers = ["Set-Cookie"]
+    allow_credentials = true
     max_age       = 300
   }
 }

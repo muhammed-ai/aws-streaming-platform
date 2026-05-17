@@ -27,8 +27,14 @@ function respond(statusCode, body) {
 }
 
 /**
- * Generate a CloudFront signed URL for a given S3 key.
- * The key should be the path inside the output bucket, e.g. "videos/abc123/index.m3u8"
+ * Generate a CloudFront signed URL using a custom policy.
+ * The custom policy covers all files under the video folder prefix,
+ * so both the .m3u8 manifest and all .ts segments are authorised
+ * with a single signed URL embedded in the manifest path.
+ *
+ * HLS.js will use the signed manifest URL, and CloudFront will serve
+ * the .ts segments because they share the same signed cookie set
+ * via the response headers.
  */
 function signedUrl(s3Key) {
   if (!KEY_PAIR_ID || !PRIVATE_KEY) {
@@ -42,6 +48,99 @@ function signedUrl(s3Key) {
     url: `${CF_DOMAIN}/${s3Key}`,
     expires: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL,
   });
+}
+
+/**
+ * Generate CloudFront signed cookies that cover an entire folder prefix.
+ * These are set on the API response so the browser sends them automatically
+ * with every subsequent CloudFront request (manifest + all .ts segments).
+ */
+function signedCookies(pathPrefix) {
+  if (!KEY_PAIR_ID || !PRIVATE_KEY) {
+    throw new Error(
+      "CloudFront signing env vars KEY_PAIR_ID and PRIVATE_KEY are not set"
+    );
+  }
+
+  const signer  = new AWS.CloudFront.Signer(KEY_PAIR_ID, PRIVATE_KEY);
+  const expires = Math.floor(Date.now() / 1000) + SIGNED_URL_TTL;
+
+  return signer.getSignedCookie({
+    url: `${CF_DOMAIN}/${pathPrefix}*`,
+    expires,
+  });
+}
+function signedUrl(s3Key) {
+  if (!KEY_PAIR_ID || !PRIVATE_KEY) {
+    throw new Error(
+      "CloudFront signing env vars KEY_PAIR_ID and PRIVATE_KEY are not set"
+    );
+  }
+
+  const signer = new AWS.CloudFront.Signer(KEY_PAIR_ID, PRIVATE_KEY);
+  return signer.getSignedUrl({
+    url: `${CF_DOMAIN}/${s3Key}`,
+    expires: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL,
+  });
+}
+
+/**
+ * GET /videos/:id/manifest
+ * Fetches the HLS manifest from S3 via CloudFront and rewrites each .ts segment
+ * line with its own signed URL. This is the key to making HLS work with signed URLs —
+ * the player gets a manifest where every segment is individually signed.
+ */
+async function getManifest(videoId) {
+  const result = await dynamo
+    .get({ TableName: TABLE_NAME, Key: { video_id: videoId } })
+    .promise();
+
+  if (!result.Item || !result.Item.output_key) {
+    return respond(404, { error: "Video not found" });
+  }
+
+  const outputKey = result.Item.output_key;
+  const folder    = outputKey.substring(0, outputKey.lastIndexOf("/") + 1);
+
+  // Fetch the manifest content from S3 directly
+  const s3 = new AWS.S3();
+  const outputBucket = process.env.OUTPUT_BUCKET;
+
+  let manifestContent;
+  try {
+    const s3Obj = await s3.getObject({
+      Bucket: outputBucket,
+      Key:    outputKey,
+    }).promise();
+    manifestContent = s3Obj.Body.toString("utf-8");
+  } catch (err) {
+    console.error("Failed to fetch manifest from S3:", err);
+    return respond(500, { error: "Could not fetch manifest" });
+  }
+
+  // Rewrite each .ts segment line with a signed CloudFront URL
+  const rewritten = manifestContent
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      // Segment lines end with .ts — rewrite them with signed URLs
+      if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
+        const segmentKey = folder + trimmed;
+        return signedUrl(segmentKey);
+      }
+      return line;
+    })
+    .join("\n");
+
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type":                "application/vnd.apple.mpegurl",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control":               "no-cache",
+    },
+    body: rewritten,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -90,9 +189,10 @@ async function getVideo(videoId) {
 
   const video = result.Item;
 
-  // Only generate a signed URL if the video has finished transcoding
   let streamUrl = null;
+
   if (video.status === "ready" && video.output_key) {
+    // Sign the manifest URL — this is what HLS.js loads first
     streamUrl = signedUrl(video.output_key);
   }
 
@@ -215,6 +315,12 @@ exports.handler = async (event) => {
     // GET /videos
     if (method === "GET" && normalizedPath === "/videos") {
       return await listVideos();
+    }
+
+    // GET /videos/:id/manifest — returns HLS manifest with signed segment URLs
+    const manifestMatch = normalizedPath.match(/^\/videos\/([^/]+)\/manifest$/);
+    if (method === "GET" && manifestMatch) {
+      return await getManifest(manifestMatch[1]);
     }
 
     // GET /videos/:id

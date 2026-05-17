@@ -48,13 +48,14 @@ module "dynamodb" {
 
 # Lambda — main API function, wired to DynamoDB and S3 via IAM policies
 module "lambda" {
-  source              = "../../modules/lambda"
-  env                 = var.env
-  dynamodb_table_arn  = module.dynamodb.table_arn
-  s3_input_bucket_arn = module.s3.input_bucket_arn
-  cloudfront_domain   = "https://${module.cloudfront.domain_name}"
-  cf_key_pair_id      = var.cf_key_pair_id
-  cf_private_key      = var.cf_private_key
+  source               = "../../modules/lambda"
+  env                  = var.env
+  dynamodb_table_arn   = module.dynamodb.table_arn
+  s3_input_bucket_arn  = module.s3.input_bucket_arn
+  s3_output_bucket_arn = module.s3.output_bucket_arn
+  cloudfront_domain    = "https://${module.cloudfront.domain_name}"
+  cf_key_pair_id       = var.cf_key_pair_id
+  cf_private_key       = var.cf_private_key
 }
 
 # Frontend — S3 + CloudFront for serving the static UI

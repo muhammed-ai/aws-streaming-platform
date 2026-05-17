@@ -52,6 +52,7 @@ resource "aws_iam_role" "trigger_lambda_role" {
 # Grants the trigger Lambda permission to:
 # - Create MediaConvert jobs
 # - Pass the MediaConvert IAM role to the job (iam:PassRole is required when passing a role to another service)
+# - Write to DynamoDB so the video appears in the catalog immediately as "processing"
 # - Write logs to CloudWatch for debugging
 resource "aws_iam_role_policy" "trigger_lambda_policy" {
   name = "mediaconvert-trigger-policy-${var.env}"
@@ -69,6 +70,11 @@ resource "aws_iam_role_policy" "trigger_lambda_policy" {
         Effect   = "Allow",
         Action   = ["iam:PassRole"],
         Resource = aws_iam_role.mediaconvert.arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem"],
+        Resource = var.dynamodb_table_arn
       },
       {
         Effect   = "Allow",
@@ -99,9 +105,10 @@ resource "aws_lambda_function" "trigger" {
 
   environment {
     variables = {
-      MC_ROLE_ARN   = aws_iam_role.mediaconvert.arn
-      MC_ENDPOINT   = "https://mediaconvert.${var.region}.amazonaws.com"
-      OUTPUT_BUCKET = var.output_bucket_id
+      MC_ROLE_ARN    = aws_iam_role.mediaconvert.arn
+      MC_ENDPOINT    = "https://mediaconvert.${var.region}.amazonaws.com"
+      OUTPUT_BUCKET  = var.output_bucket_id
+      DYNAMODB_TABLE = var.dynamodb_table_name
     }
   }
 }

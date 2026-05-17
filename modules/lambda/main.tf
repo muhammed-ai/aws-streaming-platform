@@ -45,7 +45,8 @@ resource "aws_iam_role_policy" "s3" {
     Statement = [{
       Effect   = "Allow",
       Action   = ["s3:GetObject", "s3:ListBucket"],
-      Resource = [var.s3_input_bucket_arn, "${var.s3_input_bucket_arn}/*"]
+      Resource = [var.s3_input_bucket_arn, "${var.s3_input_bucket_arn}/*",
+                  var.s3_output_bucket_arn, "${var.s3_output_bucket_arn}/*"]
     }]
   })
 }
@@ -74,8 +75,9 @@ resource "aws_lambda_function" "api" {
       # CloudFront key pair ID and private key for signed URL generation
       # Create a key pair in AWS Console → CloudFront → Key management → Key pairs
       # Store the private key in SSM Parameter Store and reference it here
-      KEY_PAIR_ID = var.cf_key_pair_id
-      PRIVATE_KEY = var.cf_private_key
+      KEY_PAIR_ID    = var.cf_key_pair_id
+      PRIVATE_KEY    = var.cf_private_key
+      OUTPUT_BUCKET  = "netflix-${var.env}-output"
     }
   }
 }

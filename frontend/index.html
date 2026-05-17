@@ -626,11 +626,16 @@
         }
 
         const streamUrl = data.video.stream_url;
+        // Use the manifest proxy endpoint which rewrites .ts segment URLs with signed URLs
+        const manifestUrl = `${API}/videos/${videoId}/manifest`;
 
         if (Hls.isSupported()) {
           if (currentHls) currentHls.destroy();
-          currentHls = new Hls();
-          currentHls.loadSource(streamUrl);
+          currentHls = new Hls({
+            xhrSetup: (xhr) => { xhr.withCredentials = true; }
+          });
+          // Load via the manifest proxy — segments are pre-signed so no CORS/auth issues
+          currentHls.loadSource(manifestUrl);
           currentHls.attachMedia(videoEl);
           currentHls.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
           currentHls.on(Hls.Events.ERROR, (_, d) => {
@@ -640,7 +645,7 @@
             }
           });
         } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
-          videoEl.src = streamUrl;
+          videoEl.src = manifestUrl;
           videoEl.play();
         } else {
           errorEl.textContent = "HLS not supported in this browser.";

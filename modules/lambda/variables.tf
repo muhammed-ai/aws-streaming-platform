@@ -12,3 +12,6 @@ variable "cf_key_pair_id" {}
 variable "cf_private_key" {
   sensitive = true
 }
+
+# Output bucket ARN — Lambda needs read access to fetch manifests for the proxy endpoint
+variable "s3_output_bucket_arn" {}
