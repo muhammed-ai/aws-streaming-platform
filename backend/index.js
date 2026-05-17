@@ -131,20 +131,34 @@ async function createVideo(body) {
 
   const item = {
     ...data,
-    status: data.status || "pending", // pending → processing → ready
+    status: data.status || "pending",
     created_at: new Date().toISOString(),
   };
 
-  await dynamo
-    .put({
-      TableName: TABLE_NAME,
-      // Prevent overwriting an existing record with the same video_id
-      ConditionExpression: "attribute_not_exists(video_id)",
-      Item: item,
-    })
-    .promise();
+  try {
+    await dynamo
+      .put({
+        TableName: TABLE_NAME,
+        ConditionExpression: "attribute_not_exists(video_id)",
+        Item: item,
+      })
+      .promise();
 
-  return respond(201, { video: item });
+    return respond(201, { video: item });
+  } catch (err) {
+    // Record already exists — overwrite it without the condition check
+    if (err.code === "ConditionalCheckFailedException") {
+      await dynamo
+        .put({
+          TableName: TABLE_NAME,
+          Item: { ...item, updated_at: new Date().toISOString() },
+        })
+        .promise();
+
+      return respond(200, { video: item });
+    }
+    throw err;
+  }
 }
 
 /**
