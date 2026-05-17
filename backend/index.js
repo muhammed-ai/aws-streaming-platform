@@ -74,7 +74,8 @@ async function getVideo(videoId) {
   const video = result.Item;
   let streamUrl = null;
   if (video.status === "ready" && video.output_key) {
-    streamUrl = signedUrl(video.output_key);
+    const encodedKey = video.output_key.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+    streamUrl = signedUrl(encodedKey);
   }
 
   return respond(200, { video: { ...video, stream_url: streamUrl } });
@@ -109,15 +110,18 @@ async function getManifest(videoId) {
   }
 
   // Rewrite .ts segment lines with signed CloudFront URLs
-  // Use raw unencoded key — CloudFront signs and matches against the decoded path
+  // URL-encode the full path before signing so the signature matches
+  // what HLS.js sends — HLS.js always percent-encodes spaces in URLs
   const rewritten = manifestContent
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
       if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
-        const fullKey = folder + trimmed;
-        console.log(`Signing segment: ${CF_DOMAIN}/${fullKey}`);
-        return signedUrl(fullKey);
+        const fullKey    = folder + trimmed;
+        // encode each path segment individually — don't encode the slash separators
+        const encodedKey = fullKey.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+        console.log(`Signing segment: ${CF_DOMAIN}/${encodedKey}`);
+        return signedUrl(encodedKey);
       }
       return line;
     })
