@@ -57,7 +57,7 @@ function signedUrl(s3Key) {
 async function listVideos() {
   const result = await dynamo.send(new ScanCommand({
     TableName:                TABLE_NAME,
-    ProjectionExpression:     "video_id, title, description, genre, #dur, thumbnail_key, #st",
+    ProjectionExpression:     "video_id, title, description, genre, #dur, thumbnail_key, #st, created_at",
     ExpressionAttributeNames: { "#dur": "duration", "#st": "status" },
   }));
   return respond(200, { videos: result.Items });
