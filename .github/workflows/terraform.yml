@@ -72,6 +72,7 @@ jobs:
           TF_VAR_cf_key_pair_id: ${{ secrets.CF_KEY_PAIR_ID }}
           TF_VAR_cf_private_key: ${{ secrets.CF_PRIVATE_KEY }}
           TF_VAR_cf_key_group_id: ${{ secrets.CF_KEY_GROUP_ID }}
+          TF_VAR_github_actions_role_name: ${{ secrets.GITHUB_ACTIONS_ROLE_NAME }}
         run: terraform plan -out=tfplan
 
       # Apply only on main branch pushes — not on pull requests
@@ -82,4 +83,28 @@ jobs:
           TF_VAR_cf_key_pair_id: ${{ secrets.CF_KEY_PAIR_ID }}
           TF_VAR_cf_private_key: ${{ secrets.CF_PRIVATE_KEY }}
           TF_VAR_cf_key_group_id: ${{ secrets.CF_KEY_GROUP_ID }}
+          TF_VAR_github_actions_role_name: ${{ secrets.GITHUB_ACTIONS_ROLE_NAME }}
         run: terraform apply -auto-approve tfplan
+
+      # Inject the API endpoint into index.html then sync to the frontend S3 bucket
+      - name: Deploy Frontend
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: environments/${{ env.ENV }}
+        run: |
+          API_ENDPOINT=$(terraform output -raw api_endpoint)
+          FRONTEND_BUCKET=$(terraform output -raw frontend_bucket)
+          FRONTEND_DIST_ID=$(terraform output -raw frontend_distribution_id)
+
+          # Inject the API endpoint into the HTML so the browser knows where to call
+          sed "s|window.API_ENDPOINT || \".*\"|\"${API_ENDPOINT}\"|g" \
+            ../../frontend/index.html > /tmp/index.html
+
+          # Upload to S3
+          aws s3 cp /tmp/index.html s3://${FRONTEND_BUCKET}/index.html \
+            --content-type "text/html" \
+            --cache-control "no-cache"
+
+          # Invalidate CloudFront cache so users get the latest version immediately
+          aws cloudfront create-invalidation \
+            --distribution-id ${FRONTEND_DIST_ID} \
+            --paths "/*"

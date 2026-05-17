@@ -130,3 +130,93 @@ resource "aws_s3_bucket_notification" "trigger" {
   # otherwise S3 cannot validate it has permission to invoke the function
   depends_on = [aws_lambda_permission.s3]
 }
+
+# ── ON-COMPLETE LAMBDA ──────────────────────────────────────────────────────
+# Triggered by EventBridge when a MediaConvert job finishes.
+# Writes the video record to DynamoDB so it appears in the catalog automatically.
+
+# IAM role for the on-complete Lambda
+resource "aws_iam_role" "on_complete_role" {
+  name = "mediaconvert-on-complete-role-${var.env}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "lambda.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+# Grants the on-complete Lambda permission to write to DynamoDB and CloudWatch logs
+resource "aws_iam_role_policy" "on_complete_policy" {
+  name = "mediaconvert-on-complete-policy-${var.env}"
+  role = aws_iam_role.on_complete_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem"],
+        Resource = var.dynamodb_table_arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Package the on-complete Lambda code
+data "archive_file" "on_complete" {
+  type        = "zip"
+  output_path = "${path.module}/on_complete.zip"
+  source_dir  = "${path.module}/on_complete"
+}
+
+# The on-complete Lambda — writes video metadata to DynamoDB when MediaConvert finishes
+resource "aws_lambda_function" "on_complete" {
+  function_name    = "mediaconvert-on-complete-${var.env}"
+  runtime          = "nodejs18.x"
+  handler          = "index.handler"
+  role             = aws_iam_role.on_complete_role.arn
+  filename         = data.archive_file.on_complete.output_path
+  source_code_hash = data.archive_file.on_complete.output_base64sha256
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE = var.dynamodb_table_name
+    }
+  }
+}
+
+# EventBridge rule — fires on any MediaConvert job state change (COMPLETE, ERROR, CANCELED)
+resource "aws_cloudwatch_event_rule" "mediaconvert_complete" {
+  name        = "mediaconvert-job-complete-${var.env}"
+  description = "Fires when a MediaConvert job changes state"
+
+  event_pattern = jsonencode({
+    source      = ["aws.mediaconvert"],
+    "detail-type" = ["MediaConvert Job State Change"]
+  })
+}
+
+# Wires the EventBridge rule to the on-complete Lambda
+resource "aws_cloudwatch_event_target" "on_complete" {
+  rule      = aws_cloudwatch_event_rule.mediaconvert_complete.name
+  target_id = "mediaconvert-on-complete"
+  arn       = aws_lambda_function.on_complete.arn
+}
+
+# Grants EventBridge permission to invoke the on-complete Lambda
+resource "aws_lambda_permission" "eventbridge" {
+  statement_id  = "AllowEventBridgeInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.on_complete.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.mediaconvert_complete.arn
+}

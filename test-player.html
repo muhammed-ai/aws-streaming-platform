@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netflox</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Netflix+Sans:wght@400;500;700&display=swap');
+
+    :root {
+      --red: #e50914;
+      --dark: #141414;
+      --card-bg: #2f2f2f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--dark);
+      color: #fff;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4%;
+      height: 68px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+      transition: background 0.3s;
+    }
+
+    nav.scrolled { background: #141414; }
+
+    .nav-logo {
+      color: var(--red);
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-decoration: none;
+      font-style: italic;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: #e5e5e5;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: #b3b3b3; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-right .search-icon,
+    .nav-right .bell-icon {
+      font-size: 20px;
+      cursor: pointer;
+      color: #e5e5e5;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      background: var(--red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* ── HERO BANNER ── */
+    #hero {
+      position: relative;
+      height: 80vh;
+      min-height: 500px;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 4% 8%;
+      background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.8) 0%,
+        rgba(0,0,0,0.4) 50%,
+        transparent 100%
+      ),
+      linear-gradient(
+        to top,
+        rgba(20,20,20,1) 0%,
+        transparent 40%
+      ),
+      #1a1a1a;
+      overflow: hidden;
+    }
+
+    #hero-bg {
+      position: absolute;
+      inset: 0;
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+      opacity: 0.5;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 500px;
+    }
+
+    .hero-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      color: #e5e5e5;
+    }
+
+    .hero-badge span {
+      color: var(--red);
+      font-size: 18px;
+    }
+
+    #hero-title {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+    }
+
+    #hero-desc {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #e5e5e5;
+      margin-bottom: 24px;
+      max-width: 420px;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #46d369;
+      font-weight: 700;
+    }
+
+    .hero-meta .rating { color: #fff; font-weight: 400; }
+    .hero-meta .year   { color: #fff; font-weight: 400; }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-play {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-play:hover { background: rgba(255,255,255,0.75); }
+
+    .btn-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(109,109,110,0.7);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-info:hover { background: rgba(109,109,110,0.4); }
+
+    /* ── ROWS ── */
+    .rows-container {
+      position: relative;
+      z-index: 2;
+      margin-top: -80px;
+      padding-bottom: 60px;
+    }
+
+    .row {
+      margin-bottom: 40px;
+      padding: 0 4%;
+    }
+
+    .row-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #e5e5e5;
+    }
+
+    .row-cards {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+
+    .row-cards::-webkit-scrollbar { display: none; }
+
+    /* ── VIDEO CARD ── */
+    .card {
+      flex: 0 0 200px;
+      height: 112px;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      background: var(--card-bg);
+      transition: transform 0.3s, z-index 0s 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.3);
+      z-index: 10;
+      transition: transform 0.3s, z-index 0s;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+    }
+
+    .card-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 10px;
+    }
+
+    .card:hover .card-overlay { opacity: 1; }
+
+    .card-overlay-title {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-overlay-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .card-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .card-btn:hover { border-color: #fff; background: rgba(255,255,255,0.2); }
+    .card-btn.play  { background: #fff; color: #000; border-color: #fff; }
+    .card-btn.play:hover { background: rgba(255,255,255,0.75); }
+
+    .card-status {
+      font-size: 10px;
+      color: #46d369;
+      margin-top: 4px;
+    }
+
+    .card-status.pending { color: #aaa; }
+
+    /* ── MODAL PLAYER ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: #181818;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    }
+
+    #modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+      background: #181818;
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-video-wrap {
+      position: relative;
+      background: #000;
+      border-radius: 8px 8px 0 0;
+      overflow: hidden;
+    }
+
+    #modal-video {
+      width: 100%;
+      display: block;
+      max-height: 500px;
+      background: #000;
+    }
+
+    #modal-info {
+      padding: 24px;
+    }
+
+    #modal-title {
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    #modal-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    #modal-meta .match  { color: #46d369; font-weight: 700; }
+    #modal-meta .year   { color: #bcbcbc; }
+    #modal-meta .rating {
+      border: 1px solid #bcbcbc;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: #bcbcbc;
+    }
+
+    #modal-desc {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #d2d2d2;
+      margin-bottom: 16px;
+    }
+
+    #modal-genre {
+      font-size: 13px;
+      color: #777;
+    }
+
+    #modal-genre span { color: #d2d2d2; }
+
+    #modal-error {
+      color: var(--red);
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    #modal-play-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+
+    #modal-play-btn:hover { background: rgba(255,255,255,0.75); }
+
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #555;
+    }
+
+    .empty h2 { font-size: 22px; margin-bottom: 8px; }
+    .empty p  { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <a class="nav-logo" href="#">NETFLOX</a>
+    <ul class="nav-links">
+      <li><a href="#">Home</a></li>
+      <li><a href="#">TV Shows</a></li>
+      <li><a href="#">Movies</a></li>
+      <li><a href="#">New &amp; Popular</a></li>
+      <li><a href="#">My List</a></li>
+    </ul>
+    <div class="nav-right">
+      <span class="search-icon">🔍</span>
+      <span class="bell-icon">🔔</span>
+      <div class="avatar">U</div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div id="hero">
+    <div class="hero-content">
+      <div class="hero-badge"><span>N</span> SERIES</div>
+      <div id="hero-title">Welcome to Netflox</div>
+      <div id="hero-desc">Your personal streaming platform powered by AWS. Click any title below to start watching.</div>
+      <div class="hero-meta">
+        <span id="hero-match">98% Match</span>
+        <span class="year" id="hero-year">2024</span>
+        <span class="rating">HD</span>
+      </div>
+      <div class="hero-buttons">
+        <button class="btn-play" id="hero-play-btn" onclick="heroPlay()">▶ Play</button>
+        <button class="btn-info" onclick="heroInfo()">ℹ More Info</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROWS -->
+  <div class="rows-container">
+    <div class="row">
+      <div class="row-title">🎬 All Videos</div>
+      <div class="row-cards" id="all-cards">
+        <div class="empty"><span class="spinner"></span> Loading...</div>
+      </div>
+    </div>
+    <div class="row" id="ready-row" style="display:none">
+      <div class="row-title">✅ Ready to Watch</div>
+      <div class="row-cards" id="ready-cards"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PLAYER -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <button id="modal-close" onclick="closeModal()">✕</button>
+      <div id="modal-video-wrap">
+        <video id="modal-video" controls></video>
+      </div>
+      <div id="modal-info">
+        <button id="modal-play-btn">▶ Play</button>
+        <div id="modal-title"></div>
+        <div id="modal-meta">
+          <span class="match">98% Match</span>
+          <span class="year" id="modal-year"></span>
+          <span class="rating">HD</span>
+        </div>
+        <div id="modal-desc"></div>
+        <div id="modal-genre">Genre: <span id="modal-genre-val"></span></div>
+        <div id="modal-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── CONFIG ──────────────────────────────────────────────────────────────
+    const API = "https://ww2c299ev0.execute-api.us-east-1.amazonaws.com";
+
+    let allVideos   = [];
+    let heroVideo   = null;
+    let currentHls  = null;
+
+    // ── NAVBAR SCROLL ───────────────────────────────────────────────────────
+    window.addEventListener("scroll", () => {
+      document.getElementById("navbar").classList.toggle("scrolled", window.scrollY > 50);
+    });
+
+    // ── LOAD CATALOG ────────────────────────────────────────────────────────
+    async function loadCatalog() {
+      try {
+        const res  = await fetch(`${API}/videos`);
+        const data = await res.json();
+        allVideos  = data.videos || [];
+
+        renderAllCards();
+        renderReadyCards();
+        setHero();
+      } catch (err) {
+        document.getElementById("all-cards").innerHTML =
+          '<div class="empty"><h2>Could not load catalog</h2><p>Check the API URL and CORS settings.</p></div>';
+        console.error(err);
+      }
+    }
+
+    // ── RENDER CARDS ────────────────────────────────────────────────────────
+    function makeCard(video) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const isReady = video.status === "ready";
+
+      card.innerHTML = `
+        <div class="card-thumb-placeholder">🎬</div>
+        <div class="card-overlay">
+          <div class="card-overlay-title">${video.title || video.video_id}</div>
+          <div class="card-overlay-actions">
+            <div class="card-btn play" title="Play" onclick="event.stopPropagation(); openModal('${video.video_id}', true)">▶</div>
+            <div class="card-btn" title="More info" onclick="event.stopPropagation(); openModal('${video.video_id}', false)">ⓘ</div>
+          </div>
+          <div class="card-status ${isReady ? "" : "pending"}">
+            ${isReady ? "● Ready" : "● Processing"}
+          </div>
+        </div>
+      `;
+
+      card.addEventListener("click", () => openModal(video.video_id, false));
+      return card;
+    }
+
+    function renderAllCards() {
+      const container = document.getElementById("all-cards");
+      container.innerHTML = "";
+
+      if (allVideos.length === 0) {
+        container.innerHTML = '<div class="empty"><h2>No videos yet</h2><p>Upload a video to the S3 input bucket to get started.</p></div>';
+        return;
+      }
+
+      allVideos.forEach(v => container.appendChild(makeCard(v)));
+    }
+
+    function renderReadyCards() {
+      const ready = allVideos.filter(v => v.status === "ready");
+      if (ready.length === 0) return;
+
+      const row       = document.getElementById("ready-row");
+      const container = document.getElementById("ready-cards");
+      row.style.display = "block";
+      container.innerHTML = "";
+      ready.forEach(v => container.appendChild(makeCard(v)));
+    }
+
+    // ── HERO ────────────────────────────────────────────────────────────────
+    function setHero() {
+      const ready = allVideos.filter(v => v.status === "ready");
+      heroVideo   = ready[0] || allVideos[0];
+      if (!heroVideo) return;
+
+      document.getElementById("hero-title").textContent = heroVideo.title || heroVideo.video_id;
+      document.getElementById("hero-desc").textContent  = heroVideo.description || "Stream this video on demand via AWS CloudFront.";
+      if (heroVideo.genre) document.getElementById("hero-match").textContent = heroVideo.genre;
+    }
+
+    function heroPlay() {
+      if (heroVideo) openModal(heroVideo.video_id, true);
+    }
+
+    function heroInfo() {
+      if (heroVideo) openModal(heroVideo.video_id, false);
+    }
+
+    // ── MODAL ───────────────────────────────────────────────────────────────
+    async function openModal(videoId, autoPlay) {
+      const overlay  = document.getElementById("modal-overlay");
+      const videoEl  = document.getElementById("modal-video");
+      const errorEl  = document.getElementById("modal-error");
+      const playBtn  = document.getElementById("modal-play-btn");
+
+      // Reset
+      errorEl.textContent = "";
+      videoEl.src = "";
+      if (currentHls) { currentHls.destroy(); currentHls = null; }
+
+      // Fill info from local cache first
+      const cached = allVideos.find(v => v.video_id === videoId);
+      if (cached) fillModalInfo(cached);
+
+      overlay.classList.add("open");
+      document.body.style.overflow = "hidden";
+
+      playBtn.onclick = () => streamVideo(videoId);
+
+      if (autoPlay) streamVideo(videoId);
+    }
+
+    function fillModalInfo(video) {
+      document.getElementById("modal-title").textContent     = video.title || video.video_id;
+      document.getElementById("modal-desc").textContent      = video.description || "";
+      document.getElementById("modal-genre-val").textContent = video.genre || "—";
+      document.getElementById("modal-year").textContent      = video.created_at
+        ? new Date(video.created_at).getFullYear()
+        : "";
+    }
+
+    async function streamVideo(videoId) {
+      const videoEl = document.getElementById("modal-video");
+      const errorEl = document.getElementById("modal-error");
+      const playBtn = document.getElementById("modal-play-btn");
+
+      errorEl.textContent  = "";
+      playBtn.innerHTML    = '<span class="spinner"></span> Loading...';
+      playBtn.disabled     = true;
+
+      try {
+        const res  = await fetch(`${API}/videos/${videoId}`);
+        const data = await res.json();
+
+        playBtn.innerHTML = "▶ Play";
+        playBtn.disabled  = false;
+
+        if (!data.video?.stream_url) {
+          errorEl.textContent = `No stream URL available — status: "${data.video?.status || "unknown"}". The video may still be processing.`;
+          return;
+        }
+
+        const streamUrl = data.video.stream_url;
+        console.log("Streaming:", streamUrl);
+
+        if (Hls.isSupported()) {
+          if (currentHls) currentHls.destroy();
+          currentHls = new Hls();
+          currentHls.loadSource(streamUrl);
+          currentHls.attachMedia(videoEl);
+          currentHls.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+          currentHls.on(Hls.Events.ERROR, (_, d) => {
+            if (d.fatal) {
+              errorEl.textContent = `Stream error: ${d.details}`;
+              console.error("HLS error", d);
+            }
+          });
+        } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+          videoEl.src = streamUrl;
+          videoEl.play();
+        } else {
+          errorEl.textContent = "HLS streaming is not supported in this browser.";
+        }
+
+      } catch (err) {
+        playBtn.innerHTML = "▶ Play";
+        playBtn.disabled  = false;
+        errorEl.textContent = "Failed to fetch stream URL. Check the console.";
+        console.error(err);
+      }
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById("modal-overlay");
+      const videoEl = document.getElementById("modal-video");
+
+      overlay.classList.remove("open");
+      document.body.style.overflow = "";
+      videoEl.pause();
+      videoEl.src = "";
+      if (currentHls) { currentHls.destroy(); currentHls = null; }
+    }
+
+    // Close modal on overlay click
+    document.getElementById("modal-overlay").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("modal-overlay")) closeModal();
+    });
+
+    // Close on Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+    });
+
+    // ── BOOT ────────────────────────────────────────────────────────────────
+    loadCatalog();
+  </script>
+
+</body>
+</html>

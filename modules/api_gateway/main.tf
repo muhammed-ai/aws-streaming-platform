@@ -2,6 +2,14 @@
 resource "aws_apigatewayv2_api" "api" {
   name          = "netflix-api-${var.env}"
   protocol_type = "HTTP"
+
+  # CORS configuration — allows the frontend CloudFront domain to call the API from the browser
+  cors_configuration {
+    allow_origins = [var.frontend_domain, "http://localhost:3000"]
+    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers = ["Content-Type", "Authorization"]
+    max_age       = 300
+  }
 }
 
 # Wires API Gateway to Lambda using AWS_PROXY — forwards the full request to Lambda and returns its response directly

@@ -27,3 +27,10 @@ variable "cf_key_group_id" {
   description = "CloudFront key group ID for signed URL verification"
   default     = ""
 }
+
+# Name of the IAM role GitHub Actions assumes via OIDC
+# Find it in AWS Console → IAM → Roles — it was created when you set up OIDC
+variable "github_actions_role_name" {
+  description = "IAM role name used by GitHub Actions OIDC"
+  default     = ""
+}
