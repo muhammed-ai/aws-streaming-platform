@@ -1,3 +1,27 @@
+# CORS response headers policy — allows HLS.js in the browser to fetch
+# .m3u8 manifests and .ts segments from this CloudFront distribution
+resource "aws_cloudfront_response_headers_policy" "cors" {
+  name = "netflix-cors-policy-${var.env}"
+
+  cors_config {
+    access_control_allow_credentials = false
+
+    access_control_allow_headers {
+      items = ["*"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "HEAD"]
+    }
+
+    access_control_allow_origins {
+      items = ["*"]
+    }
+
+    origin_override = true
+  }
+}
+
 # Origin Access Control — allows CloudFront to securely access the private S3 output bucket
 # Without this, S3 would block all CloudFront requests with a 403
 resource "aws_cloudfront_origin_access_control" "oac" {
@@ -38,6 +62,9 @@ resource "aws_cloudfront_distribution" "cdn" {
     # Restricts access to signed URLs only — unsigned requests get a 403
     # The key group contains the public key CloudFront uses to verify Lambda's signatures
     trusted_key_groups = [var.cf_key_group_id]
+
+    # Adds CORS headers so HLS.js can fetch .m3u8 and .ts segments from the browser
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors.id
   }
 
   # No geo-blocking — content is available globally

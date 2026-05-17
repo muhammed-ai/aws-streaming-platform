@@ -19,6 +19,19 @@ resource "aws_s3_bucket_public_access_block" "output" {
   restrict_public_buckets = true
 }
 
+# CORS configuration on the output bucket — required for HLS.js to fetch
+# .m3u8 manifests and .ts segments cross-origin from the browser
+resource "aws_s3_bucket_cors_configuration" "output" {
+  bucket = aws_s3_bucket.output.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
 # Bucket policy that allows only the CloudFront distribution to read from the output bucket
 # The AWS:SourceArn condition ensures no other CloudFront distribution can access this bucket
 resource "aws_s3_bucket_policy" "output" {
