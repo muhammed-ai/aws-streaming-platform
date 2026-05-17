@@ -83,6 +83,26 @@ async function getVideo(videoId) {
   return respond(200, { video: { ...video, stream_url: streamUrl } });
 }
 
+// GET /videos/:id/thumbnail — returns a signed CloudFront URL for the thumbnail image
+async function getThumbnail(videoId) {
+  const result = await dynamo.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key:       { video_id: videoId },
+  }));
+
+  if (!result.Item || !result.Item.thumbnail_key) {
+    return respond(404, { error: "Thumbnail not found" });
+  }
+
+  const parts      = result.Item.thumbnail_key.split("/").map(encodeURIComponent).join("/");
+  const url        = signedUrl(parts);
+  return {
+    statusCode: 302,
+    headers:    { Location: url },
+    body:       "",
+  };
+}
+
 // GET /videos/:id/manifest — fetches HLS manifest from S3 and rewrites
 // every .ts segment line with a signed CloudFront URL for HLS.js
 async function getManifest(videoId) {
@@ -224,6 +244,11 @@ exports.handler = async (event) => {
     const manifestMatch = normalizedPath.match(/^\/videos\/([^/]+)\/manifest$/);
     if (method === "GET" && manifestMatch) {
       return await getManifest(decodeURIComponent(manifestMatch[1]));
+    }
+
+    const thumbnailMatch = normalizedPath.match(/^\/videos\/([^/]+)\/thumbnail$/);
+    if (method === "GET" && thumbnailMatch) {
+      return await getThumbnail(decodeURIComponent(thumbnailMatch[1]));
     }
 
     const videoMatch = normalizedPath.match(/^\/videos\/([^/]+)$/);

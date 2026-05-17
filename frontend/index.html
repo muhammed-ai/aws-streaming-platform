@@ -549,12 +549,19 @@
     }
 
     function makeCard(video) {
-      const card    = document.createElement("div");
+      const card     = document.createElement("div");
       card.className = "card";
       const isReady  = video.status === "ready";
+      // build signed thumbnail URL via the API — falls back to placeholder if not available
+      const thumbHtml = video.thumbnail_key
+        ? `<img src="${API}/videos/${encodeURIComponent(video.video_id)}/thumbnail"
+               alt="${video.title}"
+               style="width:100%;height:100%;object-fit:cover;"
+               onerror="this.parentElement.innerHTML='<div class=card-thumb-placeholder>&#127916;</div>'" />`
+        : `<div class="card-thumb-placeholder">🎬</div>`;
       card.innerHTML = `
         <div class="card-inner">
-          <div class="card-thumb-placeholder">🎬</div>
+          ${thumbHtml}
           <div class="card-overlay">
             <div class="card-overlay-actions">
               <div class="card-btn play" title="Play"
