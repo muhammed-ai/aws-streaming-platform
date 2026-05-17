@@ -1,118 +1,118 @@
-const { DynamoDBClient, PutItemCommand, UpdateItemCommand } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBClient,
+  PutItemCommand,
+  UpdateItemCommand,
+} = require("@aws-sdk/client-dynamodb");
 const { marshall } = require("@aws-sdk/util-dynamodb");
 
 const dynamo = new DynamoDBClient({});
 const TABLE  = process.env.DYNAMODB_TABLE;
 
-/**
- * Triggered by EventBridge when a MediaConvert job changes state.
- * Writes or updates a DynamoDB record so the video appears in the catalog.
- *
- * EventBridge event shape (simplified):
- * {
- *   "detail-type": "MediaConvert Job State Change",
- *   "detail": {
- *     "status": "COMPLETE" | "ERROR" | "CANCELED",
- *     "jobId": "1234567890123-abcdef",
- *     "outputGroupDetails": [{ "outputDetails": [{ "outputFilePaths": ["s3://bucket/prefix/file_1080p.m3u8"] }] }],
- *     "userMetadata": { "video_id": "...", "title": "...", ... }  // set by trigger Lambda
- *   }
- * }
- */
 exports.handler = async (event) => {
   console.log("EventBridge event:", JSON.stringify(event, null, 2));
 
   const detail = event.detail;
-  const status = detail.status; // COMPLETE | ERROR | CANCELED
+  const status = detail.status;
 
-  // Extract the output S3 path from the first HLS output
-  let outputKey = null;
+  // Only act on terminal states
+  if (!["COMPLETE", "ERROR", "CANCELED"].includes(status)) {
+    console.log(`Ignoring non-terminal status: ${status}`);
+    return;
+  }
+
+  // Extract output file path from the event
+  // e.g. "s3://netflix-dev-output/test-media-converter/test-media-converter_1080p.m3u8"
+  let outputKey  = null;
+  let videoId    = null;
+
   try {
     const filePath = detail.outputGroupDetails?.[0]?.outputDetails?.[0]?.outputFilePaths?.[0];
     if (filePath) {
-      // filePath = "s3://netflix-dev-output/prefix/file_1080p.m3u8"
-      // Strip the bucket portion to get just the key
-      const url = new URL(filePath.replace("s3://", "https://"));
-      // url.pathname = "/prefix/file_1080p.m3u8" — remove leading slash
-      outputKey = url.pathname.replace(/^\/[^/]+\//, ""); // remove "/bucket-name/"
+      // Strip "s3://bucket-name/" to get just the key
+      // filePath = "s3://netflix-dev-output/folder/file.m3u8"
+      const withoutProtocol = filePath.replace("s3://", "");
+      const slashIndex      = withoutProtocol.indexOf("/");
+      outputKey             = withoutProtocol.substring(slashIndex + 1);
+
+      // video_id is the folder name — e.g. "test-media-converter"
+      videoId = outputKey.split("/")[0];
     }
   } catch (err) {
     console.warn("Could not parse output path:", err.message);
   }
 
-  // Pull metadata from userMetadata if the trigger Lambda set it,
-  // otherwise derive what we can from the job details
-  const meta      = detail.userMetadata || {};
-  const jobId     = detail.jobId || "";
-  const inputFile = detail.inputFile || "";
+  // Fall back to job ID if we couldn't derive video_id from the path
+  if (!videoId) {
+    videoId = detail.jobId || "unknown";
+  }
 
-  // Derive a video_id from the input filename if not provided
-  // e.g. "s3://bucket/my-video.mp4" → "my-video"
-  const videoId = meta.video_id || inputFile.split("/").pop().replace(/\.[^.]+$/, "") || jobId;
-
-  // Title defaults to the filename without extension
+  // Use userMetadata if the trigger Lambda set it (newer uploads)
+  const meta  = detail.userMetadata || {};
   const title = meta.title || videoId.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
   const dbStatus = status === "COMPLETE" ? "ready" : status === "ERROR" ? "error" : "processing";
+  const now      = new Date().toISOString();
 
-  try {
-    if (status === "COMPLETE" && outputKey) {
-      // Upsert — create the record if it doesn't exist, update if it does
+  console.log(`video_id=${videoId}, status=${dbStatus}, output_key=${outputKey}`);
+
+  if (status === "COMPLETE" && outputKey) {
+    // Try to create the record — if it already exists, update it instead
+    try {
       await dynamo.send(new PutItemCommand({
-        TableName: TABLE,
-        Item: marshall({
-          video_id:   videoId,
-          title:      meta.title       || title,
-          description: meta.description || "",
-          genre:      meta.genre        || "Uncategorized",
-          duration:   meta.duration     || 0,
-          output_key: outputKey,
-          status:     "ready",
-          job_id:     jobId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }),
-        // If record already exists (created manually), update instead
+        TableName:           TABLE,
         ConditionExpression: "attribute_not_exists(video_id)",
-      }).catch(async (err) => {
-        if (err.name === "ConditionalCheckFailedException") {
-          // Record exists — just update status and output_key
-          return dynamo.send(new UpdateItemCommand({
-            TableName: TABLE,
-            Key: marshall({ video_id: videoId }),
-            UpdateExpression: "SET #st = :status, output_key = :key, updated_at = :ts",
-            ExpressionAttributeNames: { "#st": "status" },
-            ExpressionAttributeValues: marshall({
-              ":status": "ready",
-              ":key":    outputKey,
-              ":ts":     new Date().toISOString(),
-            }),
-          }));
-        }
-        throw err;
+        Item: marshall({
+          video_id:    videoId,
+          title:       meta.title       || title,
+          description: meta.description || "",
+          genre:       meta.genre        || "Uncategorized",
+          duration:    meta.duration     || 0,
+          output_key:  outputKey,
+          status:      "ready",
+          job_id:      detail.jobId || "",
+          created_at:  now,
+          updated_at:  now,
+        }),
       }));
-
-      console.log(`Video ${videoId} marked as ready with key ${outputKey}`);
-    } else {
-      // Job failed or was cancelled — update status if record exists
+      console.log(`Created DynamoDB record for ${videoId}`);
+    } catch (err) {
+      if (err.name === "ConditionalCheckFailedException") {
+        // Record already exists — just update status and output_key
+        await dynamo.send(new UpdateItemCommand({
+          TableName:                 TABLE,
+          Key:                       marshall({ video_id: videoId }),
+          UpdateExpression:          "SET #st = :status, output_key = :key, updated_at = :ts",
+          ExpressionAttributeNames:  { "#st": "status" },
+          ExpressionAttributeValues: marshall({
+            ":status": "ready",
+            ":key":    outputKey,
+            ":ts":     now,
+          }),
+        }));
+        console.log(`Updated DynamoDB record for ${videoId}`);
+      } else {
+        throw err;
+      }
+    }
+  } else {
+    // Job failed — update status if record exists, ignore if it doesn't
+    try {
       await dynamo.send(new UpdateItemCommand({
-        TableName: TABLE,
-        Key: marshall({ video_id: videoId }),
-        UpdateExpression: "SET #st = :status, updated_at = :ts",
-        ExpressionAttributeNames: { "#st": "status" },
+        TableName:                 TABLE,
+        Key:                       marshall({ video_id: videoId }),
+        ConditionExpression:       "attribute_exists(video_id)",
+        UpdateExpression:          "SET #st = :status, updated_at = :ts",
+        ExpressionAttributeNames:  { "#st": "status" },
         ExpressionAttributeValues: marshall({
           ":status": dbStatus,
-          ":ts":     new Date().toISOString(),
+          ":ts":     now,
         }),
-      })).catch((err) => {
-        // Record may not exist if job failed before we created it — that's fine
-        if (err.name !== "ResourceNotFoundException") console.warn(err.message);
-      });
-
-      console.log(`Video ${videoId} status set to ${dbStatus}`);
+      }));
+      console.log(`Updated status to ${dbStatus} for ${videoId}`);
+    } catch (err) {
+      if (err.name !== "ConditionalCheckFailedException") {
+        throw err;
+      }
     }
-  } catch (err) {
-    console.error("DynamoDB write failed:", err);
-    throw err;
   }
 };
