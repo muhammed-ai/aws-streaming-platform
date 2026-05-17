@@ -19,7 +19,7 @@ exports.handler = async (event) => {
   // Derive a clean video ID from the filename without extension
   // e.g. "my-movie.mp4" → "my-movie"
   const filename     = key.split("/").pop();
-  const videoId      = filename.replace(/\.[^.]+$/, "");
+  const videoId      = filename.replace(/\.[^.]+$/, "").trim();
   const outputPrefix = videoId;
 
   // Human-readable title from the filename
