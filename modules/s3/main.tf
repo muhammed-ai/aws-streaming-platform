@@ -10,13 +10,13 @@ resource "aws_s3_bucket" "output" {
   bucket = "netflix-${var.env}-output"
 }
 
-# Block all public access — content is only accessible via CloudFront OAC
+# Block public ACLs and public access — role-based access via IAM and bucket policy still works
 resource "aws_s3_bucket_public_access_block" "output" {
   bucket                  = aws_s3_bucket.output.id
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = false
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = false
 }
 
 # CORS configuration on the output bucket — required for HLS.js to fetch
@@ -32,10 +32,8 @@ resource "aws_s3_bucket_cors_configuration" "output" {
   }
 }
 
-# Bucket policy that allows:
-# 1. CloudFront distribution to read video files for streaming
-# 2. Lambda function to read manifest files for the proxy endpoint
-# Lambda role ARN is constructed from the known naming pattern to avoid a circular dependency
+# Bucket policy — allows only the CloudFront distribution to read video files
+# Lambda access is granted via IAM role policy, not bucket policy
 resource "aws_s3_bucket_policy" "output" {
   bucket = aws_s3_bucket.output.id
 
@@ -55,13 +53,18 @@ resource "aws_s3_bucket_policy" "output" {
         }
       },
       {
-        Sid    = "AllowLambdaRead"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/netflix-lambda-role-${var.env}"
-        }
-        Action   = ["s3:GetObject", "s3:ListBucket"]
-        Resource = [aws_s3_bucket.output.arn, "${aws_s3_bucket.output.arn}/*"]
+        Sid       = "AllowLambdaRead"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/netflix-lambda-role-${var.env}" }
+        Action    = ["s3:GetObject", "s3:ListBucket"]
+        Resource  = [aws_s3_bucket.output.arn, "${aws_s3_bucket.output.arn}/*"]
+      },
+      {
+        Sid       = "AllowMediaConvertWrite"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/mediaconvert-role-${var.env}" }
+        Action    = ["s3:PutObject"]
+        Resource  = "${aws_s3_bucket.output.arn}/*"
       }
     ]
   })
