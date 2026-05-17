@@ -123,8 +123,9 @@ resource "aws_lambda_permission" "s3" {
   source_arn    = var.input_bucket_arn
 }
 
-# Configures the input bucket to fire an event whenever a file is uploaded
-# This is what automatically kicks off the MediaConvert transcoding pipeline
+# Configures the input bucket to fire an event whenever a file is uploaded or deleted
+# ObjectCreated triggers the transcoding pipeline
+# ObjectRemoved triggers cleanup of DynamoDB and output S3 files
 resource "aws_s3_bucket_notification" "trigger" {
   bucket = var.input_bucket_id
 
@@ -133,9 +134,85 @@ resource "aws_s3_bucket_notification" "trigger" {
     events              = ["s3:ObjectCreated:*"]
   }
 
-  # Lambda permission must exist before the notification is created
-  # otherwise S3 cannot validate it has permission to invoke the function
-  depends_on = [aws_lambda_permission.s3]
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.delete.arn
+    events              = ["s3:ObjectRemoved:*"]
+  }
+
+  depends_on = [aws_lambda_permission.s3, aws_lambda_permission.s3_delete]
+}
+
+# ── DELETE LAMBDA ────────────────────────────────────────────────────────────
+# Triggered when a file is deleted from the input bucket.
+# Removes the DynamoDB record and all HLS output files from the output bucket.
+
+resource "aws_iam_role" "delete_lambda_role" {
+  name = "mediaconvert-delete-role-${var.env}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "lambda.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "delete_lambda_policy" {
+  name = "mediaconvert-delete-policy-${var.env}"
+  role = aws_iam_role.delete_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["dynamodb:DeleteItem"],
+        Resource = var.dynamodb_table_arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["s3:ListBucket", "s3:DeleteObject"],
+        Resource = [var.output_bucket_arn, "${var.output_bucket_arn}/*"]
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+data "archive_file" "delete" {
+  type        = "zip"
+  output_path = "${path.module}/delete.zip"
+  source_dir  = "${path.module}/delete"
+}
+
+resource "aws_lambda_function" "delete" {
+  function_name    = "mediaconvert-delete-${var.env}"
+  runtime          = "nodejs18.x"
+  handler          = "index.handler"
+  role             = aws_iam_role.delete_lambda_role.arn
+  filename         = data.archive_file.delete.output_path
+  source_code_hash = data.archive_file.delete.output_base64sha256
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE = var.dynamodb_table_name
+      OUTPUT_BUCKET  = var.output_bucket_id
+    }
+  }
+}
+
+resource "aws_lambda_permission" "s3_delete" {
+  statement_id  = "AllowS3InvokeDelete"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = var.input_bucket_arn
 }
 
 # ── ON-COMPLETE LAMBDA ──────────────────────────────────────────────────────
