@@ -72,7 +72,7 @@ jobs:
           TF_VAR_cf_key_pair_id: ${{ secrets.CF_KEY_PAIR_ID }}
           TF_VAR_cf_private_key: ${{ secrets.CF_PRIVATE_KEY }}
           TF_VAR_cf_key_group_id: ${{ secrets.CF_KEY_GROUP_ID }}
-          TF_VAR_github_actions_role_name: ${{ secrets.GITHUB_ACTIONS_ROLE_NAME }}
+          TF_VAR_github_actions_role_name: ${{ secrets.GH_ACTIONS_ROLE_NAME }}
         run: terraform plan -out=tfplan
 
       # Apply only on main branch pushes — not on pull requests
@@ -83,7 +83,7 @@ jobs:
           TF_VAR_cf_key_pair_id: ${{ secrets.CF_KEY_PAIR_ID }}
           TF_VAR_cf_private_key: ${{ secrets.CF_PRIVATE_KEY }}
           TF_VAR_cf_key_group_id: ${{ secrets.CF_KEY_GROUP_ID }}
-          TF_VAR_github_actions_role_name: ${{ secrets.GITHUB_ACTIONS_ROLE_NAME }}
+          TF_VAR_github_actions_role_name: ${{ secrets.GH_ACTIONS_ROLE_NAME }}
         run: terraform apply -auto-approve tfplan
 
       # Inject the API endpoint into index.html then sync to the frontend S3 bucket
