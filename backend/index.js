@@ -119,9 +119,10 @@ async function getManifest(videoId) {
     .map((line) => {
       const trimmed = line.trim();
       if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
-        // encode folder and filename separately to avoid double-encoding
+        // decode first in case MediaConvert wrote pre-encoded filenames into the manifest
+        const decoded         = decodeURIComponent(trimmed);
         const encodedFolder   = folder.split("/").map(encodeURIComponent).join("/");
-        const encodedFilename = encodeURIComponent(trimmed);
+        const encodedFilename = encodeURIComponent(decoded);
         const encodedKey      = encodedFolder + encodedFilename;
         console.log(`Signing segment: ${CF_DOMAIN}/${encodedKey}`);
         return signedUrl(encodedKey);
