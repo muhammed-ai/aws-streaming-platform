@@ -61,6 +61,23 @@ resource "aws_lambda_function" "api" {
 
   # Only set source_code_hash if the zip exists — avoids plan-time error in CI before build step
   source_code_hash = fileexists("${path.module}/lambda.zip") ? filebase64sha256("${path.module}/lambda.zip") : null
+
+  environment {
+    variables = {
+      # DynamoDB table name — matches the table created by the dynamodb module
+      DYNAMODB_TABLE = "videos-${var.env}"
+
+      # CloudFront domain for building signed streaming URLs — set after first deploy
+      # Format: https://xxxx.cloudfront.net  (no trailing slash)
+      CF_URL = var.cloudfront_domain
+
+      # CloudFront key pair ID and private key for signed URL generation
+      # Create a key pair in AWS Console → CloudFront → Key management → Key pairs
+      # Store the private key in SSM Parameter Store and reference it here
+      KEY_PAIR_ID = var.cf_key_pair_id
+      PRIVATE_KEY  = var.cf_private_key
+    }
+  }
 }
 
 # Exposes the Lambda invoke ARN — used by API Gateway to wire up the integration

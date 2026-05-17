@@ -26,10 +26,11 @@ module "s3" {
 # CloudFront — serves transcoded video from the S3 output bucket, protected by WAF
 # Uses regional S3 domain required by OAC — format: bucket.s3.region.amazonaws.com
 module "cloudfront" {
-  source        = "../../modules/cloudfront"
-  env           = var.env
-  bucket_domain = "netflix-${var.env}-output.s3.us-east-1.amazonaws.com"
-  web_acl_id    = module.waf.web_acl_id
+  source           = "../../modules/cloudfront"
+  env              = var.env
+  bucket_domain    = "netflix-${var.env}-output.s3.us-east-1.amazonaws.com"
+  web_acl_id       = module.waf.web_acl_id
+  cf_key_group_id  = var.cf_key_group_id
 }
 
 # DynamoDB — stores video metadata, created before Lambda since Lambda needs the table ARN for IAM policy
@@ -44,6 +45,9 @@ module "lambda" {
   env                 = var.env
   dynamodb_table_arn  = module.dynamodb.table_arn
   s3_input_bucket_arn = module.s3.input_bucket_arn
+  cloudfront_domain   = "https://${module.cloudfront.domain_name}"
+  cf_key_pair_id      = var.cf_key_pair_id
+  cf_private_key      = var.cf_private_key
 }
 
 # API Gateway — HTTP API that routes all requests to the Lambda function

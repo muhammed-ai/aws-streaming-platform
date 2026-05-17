@@ -28,12 +28,16 @@ resource "aws_cloudfront_distribution" "cdn" {
     cached_methods         = ["GET", "HEAD"]
 
     forwarded_values {
-      # Query strings not forwarded — improves cache hit rate for video files
-      query_string = false
+      # CloudFront signed URL query strings must be forwarded so CloudFront can verify them
+      query_string = true
       cookies {
         forward = "none"
       }
     }
+
+    # Restricts access to signed URLs only — unsigned requests get a 403
+    # The key group contains the public key CloudFront uses to verify Lambda's signatures
+    trusted_key_groups = [var.cf_key_group_id]
   }
 
   # No geo-blocking — content is available globally
@@ -61,3 +65,5 @@ output "domain_name" {
 output "distribution_arn" {
   value = aws_cloudfront_distribution.cdn.arn
 }
+
+

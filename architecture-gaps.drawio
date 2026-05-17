@@ -105,7 +105,7 @@
         <mxCell id="s3out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;🪣 S3 Output Bucket&lt;br&gt;netflix-dev-output&lt;/font&gt;" vertex="1">
           <mxGeometry height="50" width="140" x="450" y="599" as="geometry" />
         </mxCell>
-        <mxCell id="m_cf_s3out" edge="1" parent="1" source="cf" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;fontSize=10;fontColor=#d32f2f;flowAnimation=1;shape=link;" target="hp1nNOI45ZV0TVRCNbsO-12" value="❌ Missing OAC&#xa;(Origin Access Control)&#xa;CloudFront can&#39;t read&#xa;private S3 bucket">
+        <mxCell id="m_cf_s3out" edge="1" parent="1" source="cf" style="endArrow=block;endFill=1;strokeColor=#388E3C;strokeWidth=3;fontSize=10;fontColor=#d32f2f;flowAnimation=1;shape=link;" target="hp1nNOI45ZV0TVRCNbsO-12" value="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="620" y="340" />
@@ -114,7 +114,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="m_lambda_ddb" edge="1" parent="1" source="lambda" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=10;fontColor=#d32f2f;exitX=0.354;exitY=1.008;exitDx=0;exitDy=0;exitPerimeter=0;flowAnimation=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="qoirRR4ypZUMS6ivp0K0-4" value="❌ Missing IAM policy&#xa;Lambda has no permission&#xa;to read/write DynamoDB">
-          <mxGeometry relative="1" x="-0.5434" y="7" as="geometry">
+          <mxGeometry relative="1" x="-0.5383" y="7" as="geometry">
             <mxPoint as="offset" />
             <Array as="points" />
           </mxGeometry>
@@ -122,11 +122,13 @@
         <mxCell id="mc_role" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" value="🎬 MediaConvert&#xa;IAM Role&#xa;mediaconvert-role-dev&#xa;(no policies attached)" vertex="1">
           <mxGeometry height="80" width="160" x="147.5" y="770" as="geometry" />
         </mxCell>
-        <mxCell id="m_s3in_mc" edge="1" parent="1" source="hp1nNOI45ZV0TVRCNbsO-15" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="mc_role" value="❌ Missing S3 Event Notification&#xa;+ Lambda trigger&#xa;Uploads don&#39;t start&#xa;MediaConvert jobs">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="m_s3in_mc" edge="1" parent="1" source="hp1nNOI45ZV0TVRCNbsO-15" style="endArrow=block;endFill=1;strokeColor=#388E3C;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="mc_role" value="">
+          <mxGeometry relative="1" x="-0.0236" y="-128" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="m_mc_s3out" edge="1" parent="1" source="mc_role" style="endArrow=block;endFill=1;strokeColor=#d32f2f;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="hp1nNOI45ZV0TVRCNbsO-12" value="❌ Missing IAM policy&#xa;MediaConvert needs S3&#xa;read input + write output">
-          <mxGeometry relative="1" x="-0.5214" y="30" as="geometry">
+        <mxCell id="m_mc_s3out" edge="1" parent="1" source="mc_role" style="endArrow=block;endFill=1;strokeColor=#388E3C;strokeWidth=3;dashed=1;fontSize=13;fontColor=#d32f2f;flowAnimation=1;" target="hp1nNOI45ZV0TVRCNbsO-12" value="t">
+          <mxGeometry relative="1" x="-0.4356" y="80" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
               <mxPoint x="420" y="810" />
@@ -137,7 +139,7 @@
         <mxCell id="signed_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=2;" value="⚠️ Lambda generates CloudFront Signed URLs&#xa;but KEY_PAIR_ID + PRIVATE_KEY env vars&#xa;are not set on the Lambda function" vertex="1">
           <mxGeometry height="70" width="240" x="1310" y="760" as="geometry" />
         </mxCell>
-        <mxCell id="e_lambda_signed" edge="1" parent="1" source="lambda" style="endArrow=open;endFill=0;strokeColor=#d6b656;strokeWidth=2;dashed=1;flowAnimation=1;" target="signed_note" value="">
+        <mxCell id="e_lambda_signed" edge="1" parent="1" source="lambda" style="endArrow=open;endFill=0;strokeColor=#d6b656;strokeWidth=2;dashed=1;flowAnimation=1;fontStyle=1" target="signed_note" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="frontend_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="🚫 No Frontend Exists Yet&#xa;React/Next.js app needed&#xa;Deploy to S3 + CloudFront&#xa;Integrate Cognito via Amplify" vertex="1">
@@ -149,7 +151,7 @@
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-1" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;" value="" vertex="1">
           <mxGeometry height="80" width="80" x="1260" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="hp1nNOI45ZV0TVRCNbsO-2" parent="1" style="sketch=0;verticalLabelPosition=bottom;sketch=0;aspect=fixed;html=1;verticalAlign=top;strokeColor=none;fillColor=#000000;align=center;outlineConnect=0;pointerEvents=1;shape=mxgraph.citrix2.external_users;" value="" vertex="1">
+        <mxCell id="hp1nNOI45ZV0TVRCNbsO-2" parent="1" style="sketch=0;verticalLabelPosition=bottom;sketch=0;aspect=fixed;html=1;verticalAlign=top;fillColor=none;align=center;outlineConnect=0;pointerEvents=1;shape=mxgraph.citrix2.external_users;strokeColor=#B20000;fontColor=#ffffff;fillStyle=auto;gradientColor=default;strokeWidth=3;perimeterSpacing=0;" value="" vertex="1">
           <mxGeometry height="67.78" width="65.67" x="782.38" y="-127.78" as="geometry" />
         </mxCell>
         <mxCell id="hp1nNOI45ZV0TVRCNbsO-9" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;" value="" vertex="1">
@@ -183,7 +185,7 @@
           <mxGeometry height="60" width="102" x="-47" y="8" as="geometry" />
         </mxCell>
         <mxCell id="qoirRR4ypZUMS6ivp0K0-14" parent="1" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;" value="AWS Cloud" vertex="1">
-          <mxGeometry height="900" width="1700" x="-50" y="-20" as="geometry" />
+          <mxGeometry height="900" width="1750" x="-50" y="-20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
