@@ -1,11 +1,22 @@
-const AWS = require("aws-sdk");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  ScanCommand,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/cloudfront-signer");
 
-const dynamo = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME   = process.env.DYNAMODB_TABLE || "videos-dev";
-const CF_DOMAIN    = process.env.CF_URL;
-const KEY_PAIR_ID  = process.env.KEY_PAIR_ID;
-const PRIVATE_KEY  = process.env.PRIVATE_KEY;
-const OUTPUT_BUCKET = process.env.OUTPUT_BUCKET;
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const s3     = new S3Client({});
+
+const TABLE_NAME     = process.env.DYNAMODB_TABLE || "videos-dev";
+const CF_DOMAIN      = process.env.CF_URL;
+const KEY_PAIR_ID    = process.env.KEY_PAIR_ID;
+const PRIVATE_KEY    = process.env.PRIVATE_KEY;
+const OUTPUT_BUCKET  = process.env.OUTPUT_BUCKET;
 const SIGNED_URL_TTL = 3600; // 1 hour
 
 // ---------------------------------------------------------------------------
@@ -24,17 +35,16 @@ function respond(statusCode, body) {
   };
 }
 
-/**
- * Generate a signed CloudFront URL for a single S3 key.
- */
+// Generate a signed CloudFront URL using SDK v3 cloudfront-signer
 function signedUrl(s3Key) {
   if (!KEY_PAIR_ID || !PRIVATE_KEY) {
     throw new Error("CloudFront signing env vars KEY_PAIR_ID and PRIVATE_KEY are not set");
   }
-  const signer = new AWS.CloudFront.Signer(KEY_PAIR_ID, PRIVATE_KEY);
-  return signer.getSignedUrl({
-    url:     `${CF_DOMAIN}/${s3Key}`,
-    expires: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL,
+  return getSignedUrl({
+    url:               `${CF_DOMAIN}/${s3Key}`,
+    keyPairId:         KEY_PAIR_ID,
+    privateKey:        PRIVATE_KEY,
+    dateLessThan:      new Date(Date.now() + SIGNED_URL_TTL * 1000).toISOString(),
   });
 }
 
@@ -42,41 +52,27 @@ function signedUrl(s3Key) {
 // Route handlers
 // ---------------------------------------------------------------------------
 
-/**
- * GET /videos
- * Returns the catalog from DynamoDB — no signed URLs, just metadata.
- */
+// GET /videos — returns catalog from DynamoDB, no signed URLs
 async function listVideos() {
-  const result = await dynamo
-    .scan({
-      TableName: TABLE_NAME,
-      ProjectionExpression: "video_id, title, description, genre, #dur, thumbnail_key, #st",
-      ExpressionAttributeNames: {
-        "#dur": "duration",
-        "#st":  "status",
-      },
-    })
-    .promise();
-
+  const result = await dynamo.send(new ScanCommand({
+    TableName:                TABLE_NAME,
+    ProjectionExpression:     "video_id, title, description, genre, #dur, thumbnail_key, #st",
+    ExpressionAttributeNames: { "#dur": "duration", "#st": "status" },
+  }));
   return respond(200, { videos: result.Items });
 }
 
-/**
- * GET /videos/:id
- * Returns full metadata + a signed CloudFront URL for the manifest.
- */
+// GET /videos/:id — returns metadata + signed CloudFront URL
 async function getVideo(videoId) {
-  const result = await dynamo
-    .get({ TableName: TABLE_NAME, Key: { video_id: videoId } })
-    .promise();
+  const result = await dynamo.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key:       { video_id: videoId },
+  }));
 
-  if (!result.Item) {
-    return respond(404, { error: "Video not found" });
-  }
+  if (!result.Item) return respond(404, { error: "Video not found" });
 
   const video = result.Item;
   let streamUrl = null;
-
   if (video.status === "ready" && video.output_key) {
     streamUrl = signedUrl(video.output_key);
   }
@@ -84,15 +80,13 @@ async function getVideo(videoId) {
   return respond(200, { video: { ...video, stream_url: streamUrl } });
 }
 
-/**
- * GET /videos/:id/manifest
- * Fetches the HLS manifest from S3 and rewrites every .ts segment line
- * with its own signed CloudFront URL so HLS.js can fetch all segments.
- */
+// GET /videos/:id/manifest — fetches HLS manifest from S3 and rewrites
+// every .ts segment line with a signed CloudFront URL for HLS.js
 async function getManifest(videoId) {
-  const result = await dynamo
-    .get({ TableName: TABLE_NAME, Key: { video_id: videoId } })
-    .promise();
+  const result = await dynamo.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key:       { video_id: videoId },
+  }));
 
   if (!result.Item || !result.Item.output_key) {
     return respond(404, { error: "Video not found" });
@@ -101,21 +95,20 @@ async function getManifest(videoId) {
   const outputKey = result.Item.output_key;
   const folder    = outputKey.substring(0, outputKey.lastIndexOf("/") + 1);
 
-  // Fetch the manifest directly from S3
-  const s3 = new AWS.S3();
+  // Fetch manifest from S3
   let manifestContent;
   try {
-    const s3Obj = await s3.getObject({
+    const s3Obj = await s3.send(new GetObjectCommand({
       Bucket: OUTPUT_BUCKET,
       Key:    outputKey,
-    }).promise();
-    manifestContent = s3Obj.Body.toString("utf-8");
+    }));
+    manifestContent = await s3Obj.Body.transformToString("utf-8");
   } catch (err) {
     console.error("Failed to fetch manifest from S3:", err);
     return respond(500, { error: "Could not fetch manifest" });
   }
 
-  // Rewrite each .ts segment line with a signed CloudFront URL
+  // Rewrite .ts segment lines with signed CloudFront URLs
   const rewritten = manifestContent
     .split("\n")
     .map((line) => {
@@ -138,10 +131,7 @@ async function getManifest(videoId) {
   };
 }
 
-/**
- * POST /videos
- * Creates or overwrites a video metadata record in DynamoDB.
- */
+// POST /videos — creates a video metadata record in DynamoDB
 async function createVideo(body) {
   let data;
   try {
@@ -151,9 +141,7 @@ async function createVideo(body) {
   }
 
   const { video_id, title } = data;
-  if (!video_id || !title) {
-    return respond(400, { error: "video_id and title are required" });
-  }
+  if (!video_id || !title) return respond(400, { error: "video_id and title are required" });
 
   const item = {
     ...data,
@@ -163,28 +151,22 @@ async function createVideo(body) {
   };
 
   try {
-    await dynamo
-      .put({
-        TableName:           TABLE_NAME,
-        ConditionExpression: "attribute_not_exists(video_id)",
-        Item:                item,
-      })
-      .promise();
+    await dynamo.send(new PutCommand({
+      TableName:           TABLE_NAME,
+      ConditionExpression: "attribute_not_exists(video_id)",
+      Item:                item,
+    }));
     return respond(201, { video: item });
   } catch (err) {
-    if (err.code === "ConditionalCheckFailedException") {
-      // Record exists — overwrite it
-      await dynamo.put({ TableName: TABLE_NAME, Item: item }).promise();
+    if (err.name === "ConditionalCheckFailedException") {
+      await dynamo.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
       return respond(200, { video: item });
     }
     throw err;
   }
 }
 
-/**
- * PUT /videos/:id/status
- * Updates the transcoding status of a video.
- */
+// PUT /videos/:id/status — updates transcoding status
 async function updateVideoStatus(videoId, body) {
   let data;
   try {
@@ -193,25 +175,17 @@ async function updateVideoStatus(videoId, body) {
     return respond(400, { error: "Invalid JSON body" });
   }
 
-  const { status } = data;
-  if (!status) {
-    return respond(400, { error: "status is required" });
-  }
+  if (!data.status) return respond(400, { error: "status is required" });
 
-  const result = await dynamo
-    .update({
-      TableName:                 TABLE_NAME,
-      Key:                       { video_id: videoId },
-      UpdateExpression:          "SET #st = :status, updated_at = :ts",
-      ConditionExpression:       "attribute_exists(video_id)",
-      ExpressionAttributeNames:  { "#st": "status" },
-      ExpressionAttributeValues: {
-        ":status": status,
-        ":ts":     new Date().toISOString(),
-      },
-      ReturnValues: "ALL_NEW",
-    })
-    .promise();
+  const result = await dynamo.send(new UpdateCommand({
+    TableName:                 TABLE_NAME,
+    Key:                       { video_id: videoId },
+    UpdateExpression:          "SET #st = :status, updated_at = :ts",
+    ConditionExpression:       "attribute_exists(video_id)",
+    ExpressionAttributeNames:  { "#st": "status" },
+    ExpressionAttributeValues: { ":status": data.status, ":ts": new Date().toISOString() },
+    ReturnValues:              "ALL_NEW",
+  }));
 
   return respond(200, { video: result.Attributes });
 }
@@ -221,9 +195,11 @@ async function updateVideoStatus(videoId, body) {
 // ---------------------------------------------------------------------------
 
 exports.handler = async (event) => {
-  const method = event.requestContext?.http?.method || event.httpMethod || "GET";
-  const path   = event.rawPath || event.path || "/";
+  const method         = event.requestContext?.http?.method || event.httpMethod || "GET";
+  const path           = event.rawPath || event.path || "/";
   const normalizedPath = path.replace(/\/$/, "") || "/";
+
+  console.log(`${method} ${normalizedPath}`);
 
   try {
     if (method === "GET" && normalizedPath === "/health") {
@@ -236,12 +212,12 @@ exports.handler = async (event) => {
 
     const manifestMatch = normalizedPath.match(/^\/videos\/([^/]+)\/manifest$/);
     if (method === "GET" && manifestMatch) {
-      return await getManifest(manifestMatch[1]);
+      return await getManifest(decodeURIComponent(manifestMatch[1]));
     }
 
     const videoMatch = normalizedPath.match(/^\/videos\/([^/]+)$/);
     if (method === "GET" && videoMatch) {
-      return await getVideo(videoMatch[1]);
+      return await getVideo(decodeURIComponent(videoMatch[1]));
     }
 
     if (method === "POST" && normalizedPath === "/videos") {
@@ -250,7 +226,7 @@ exports.handler = async (event) => {
 
     const statusMatch = normalizedPath.match(/^\/videos\/([^/]+)\/status$/);
     if (method === "PUT" && statusMatch) {
-      return await updateVideoStatus(statusMatch[1], event.body);
+      return await updateVideoStatus(decodeURIComponent(statusMatch[1]), event.body);
     }
 
     return respond(404, { error: "Route not found" });
