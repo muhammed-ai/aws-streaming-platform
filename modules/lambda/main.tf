@@ -91,8 +91,3 @@ output "invoke_arn" {
 output "function_name" {
   value = aws_lambda_function.api.function_name
 }
-
-# Exposes the Lambda IAM role ARN — used by S3 bucket policy to allow manifest reads
-output "role_arn" {
-  value = aws_iam_role.lambda_role.arn
-}

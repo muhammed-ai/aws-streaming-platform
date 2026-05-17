@@ -35,6 +35,7 @@ resource "aws_s3_bucket_cors_configuration" "output" {
 # Bucket policy that allows:
 # 1. CloudFront distribution to read video files for streaming
 # 2. Lambda function to read manifest files for the proxy endpoint
+# Lambda role ARN is constructed from the known naming pattern to avoid a circular dependency
 resource "aws_s3_bucket_policy" "output" {
   bucket = aws_s3_bucket.output.id
 
@@ -43,10 +44,10 @@ resource "aws_s3_bucket_policy" "output" {
     Statement = [
       {
         Sid       = "AllowCloudFront"
-        Effect    = "Allow",
-        Principal = { Service = "cloudfront.amazonaws.com" },
-        Action    = "s3:GetObject",
-        Resource  = "${aws_s3_bucket.output.arn}/*",
+        Effect    = "Allow"
+        Principal = { Service = "cloudfront.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.output.arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = var.cloudfront_distribution_arn
@@ -55,19 +56,19 @@ resource "aws_s3_bucket_policy" "output" {
       },
       {
         Sid    = "AllowLambdaRead"
-        Effect = "Allow",
+        Effect = "Allow"
         Principal = {
-          AWS = var.lambda_role_arn
-        },
-        Action   = ["s3:GetObject", "s3:ListBucket"],
-        Resource = [
-          "${aws_s3_bucket.output.arn}",
-          "${aws_s3_bucket.output.arn}/*"
-        ]
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/netflix-lambda-role-${var.env}"
+        }
+        Action   = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [aws_s3_bucket.output.arn, "${aws_s3_bucket.output.arn}/*"]
       }
     ]
   })
 }
+
+# Used to get the current AWS account ID for constructing the Lambda role ARN
+data "aws_caller_identity" "current" {}
 
 # Exposes the output bucket's regional domain — used by CloudFront as the origin domain
 output "output_bucket_domain" {
