@@ -575,10 +575,12 @@
 
     function setHero() {
       const ready = allVideos.filter(v => v.status === "ready");
-      heroVideo   = ready[0] || allVideos[0];
+      // pick the most recently added ready video for the hero
+      const sorted = ready.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      heroVideo = sorted[0] || allVideos[0];
       if (!heroVideo) return;
       document.getElementById("hero-title").textContent = heroVideo.title || heroVideo.video_id;
-      document.getElementById("hero-desc").textContent  = heroVideo.description || "Stream on demand via AWS CloudFront.";
+      document.getElementById("hero-desc").textContent  = heroVideo.description || "A fully serverless Netflix-style streaming platform built on AWS — videos are automatically transcoded via MediaConvert, stored in S3, and delivered globally through CloudFront with signed URLs.";
       if (heroVideo.genre) document.getElementById("hero-genre").textContent = heroVideo.genre;
     }
 
