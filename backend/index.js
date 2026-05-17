@@ -109,15 +109,15 @@ async function getManifest(videoId) {
   }
 
   // Rewrite .ts segment lines with signed CloudFront URLs
-  // encodeURIComponent the key so spaces and special chars are properly encoded in the signed URL
+  // Use raw unencoded key — CloudFront signs and matches against the decoded path
   const rewritten = manifestContent
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
       if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
         const fullKey = folder + trimmed;
-        const encodedKey = fullKey.split("/").map(encodeURIComponent).join("/");
-        return signedUrl(encodedKey);
+        console.log(`Signing segment: ${CF_DOMAIN}/${fullKey}`);
+        return signedUrl(fullKey);
       }
       return line;
     })
