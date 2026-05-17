@@ -32,24 +32,40 @@ resource "aws_s3_bucket_cors_configuration" "output" {
   }
 }
 
-# Bucket policy that allows only the CloudFront distribution to read from the output bucket
-# The AWS:SourceArn condition ensures no other CloudFront distribution can access this bucket
+# Bucket policy that allows:
+# 1. CloudFront distribution to read video files for streaming
+# 2. Lambda function to read manifest files for the proxy endpoint
 resource "aws_s3_bucket_policy" "output" {
   bucket = aws_s3_bucket.output.id
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow",
-      Principal = { Service = "cloudfront.amazonaws.com" },
-      Action    = "s3:GetObject",
-      Resource  = "${aws_s3_bucket.output.arn}/*",
-      Condition = {
-        StringEquals = {
-          "AWS:SourceArn" = var.cloudfront_distribution_arn
+    Statement = [
+      {
+        Sid       = "AllowCloudFront"
+        Effect    = "Allow",
+        Principal = { Service = "cloudfront.amazonaws.com" },
+        Action    = "s3:GetObject",
+        Resource  = "${aws_s3_bucket.output.arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = var.cloudfront_distribution_arn
+          }
         }
+      },
+      {
+        Sid    = "AllowLambdaRead"
+        Effect = "Allow",
+        Principal = {
+          AWS = var.lambda_role_arn
+        },
+        Action   = ["s3:GetObject", "s3:ListBucket"],
+        Resource = [
+          "${aws_s3_bucket.output.arn}",
+          "${aws_s3_bucket.output.arn}/*"
+        ]
       }
-    }]
+    ]
   })
 }
 

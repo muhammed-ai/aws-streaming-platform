@@ -27,7 +27,8 @@ module "s3" {
   source                      = "../../modules/s3"
   env                         = var.env
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
-  depends_on                  = [module.cloudfront]
+  lambda_role_arn             = module.lambda.role_arn
+  depends_on                  = [module.cloudfront, module.lambda]
 }
 
 # CloudFront — serves transcoded video from the S3 output bucket, protected by WAF
