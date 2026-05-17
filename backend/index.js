@@ -74,7 +74,8 @@ async function getVideo(videoId) {
   const video = result.Item;
   let streamUrl = null;
   if (video.status === "ready" && video.output_key) {
-    const encodedKey = video.output_key.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+    const parts      = video.output_key.split("/");
+    const encodedKey = parts.map(encodeURIComponent).join("/");
     streamUrl = signedUrl(encodedKey);
   }
 
@@ -117,9 +118,10 @@ async function getManifest(videoId) {
     .map((line) => {
       const trimmed = line.trim();
       if (trimmed.endsWith(".ts") && !trimmed.startsWith("#")) {
-        const fullKey    = folder + trimmed;
-        // encode each path segment individually — don't encode the slash separators
-        const encodedKey = fullKey.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+        // encode folder and filename separately to avoid double-encoding
+        const encodedFolder   = folder.split("/").map(encodeURIComponent).join("/");
+        const encodedFilename = encodeURIComponent(trimmed);
+        const encodedKey      = encodedFolder + encodedFilename;
         console.log(`Signing segment: ${CF_DOMAIN}/${encodedKey}`);
         return signedUrl(encodedKey);
       }
