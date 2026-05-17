@@ -517,7 +517,7 @@
   <script>
     // API_ENDPOINT is injected by the GitHub Actions deploy step
     // Falls back to the known endpoint for local testing
-    const API = window.API_ENDPOINT || "https://ww2c299ev0.execute-api.us-east-1.amazonaws.com";
+    const API = (window.API_ENDPOINT || "https://ww2c299ev0.execute-api.us-east-1.amazonaws.com").replace(/\/$/, "");
 
     let allVideos  = [];
     let heroVideo  = null;
@@ -638,7 +638,7 @@
       playBtn.disabled    = true;
 
       try {
-        const res  = await fetch(`${API}/videos/${videoId}`);
+        const res  = await fetch(`${API}/videos/${encodeURIComponent(videoId)}`);
         const data = await res.json();
 
         playBtn.innerHTML = "▶ Play";
@@ -649,9 +649,8 @@
           return;
         }
 
-        const streamUrl = data.video.stream_url;
         // Use the manifest proxy endpoint which rewrites .ts segment URLs with signed URLs
-        const manifestUrl = `${API}/videos/${videoId}/manifest`;
+        const manifestUrl = `${API}/videos/${encodeURIComponent(videoId)}/manifest`;
 
         if (Hls.isSupported()) {
           if (currentHls) currentHls.destroy();
