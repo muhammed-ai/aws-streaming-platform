@@ -75,7 +75,7 @@ resource "aws_lambda_function" "api" {
       # Create a key pair in AWS Console → CloudFront → Key management → Key pairs
       # Store the private key in SSM Parameter Store and reference it here
       KEY_PAIR_ID = var.cf_key_pair_id
-      PRIVATE_KEY  = var.cf_private_key
+      PRIVATE_KEY = var.cf_private_key
     }
   }
 }
