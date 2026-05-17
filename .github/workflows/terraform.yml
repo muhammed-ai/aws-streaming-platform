@@ -91,9 +91,14 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: environments/${{ env.ENV }}
         run: |
-          API_ENDPOINT=$(terraform output -raw api_endpoint)
-          FRONTEND_BUCKET=$(terraform output -raw frontend_bucket)
-          FRONTEND_DIST_ID=$(terraform output -raw frontend_distribution_id)
+          API_ENDPOINT=$(terraform output -raw api_endpoint 2>/dev/null || echo "")
+          FRONTEND_BUCKET=$(terraform output -raw frontend_bucket 2>/dev/null || echo "")
+          FRONTEND_DIST_ID=$(terraform output -raw frontend_distribution_id 2>/dev/null || echo "")
+
+          if [ -z "$FRONTEND_BUCKET" ]; then
+            echo "frontend_bucket output not available — skipping frontend deploy"
+            exit 0
+          fi
 
           # Inject the API endpoint into the HTML so the browser knows where to call
           sed "s|window.API_ENDPOINT || \".*\"|\"${API_ENDPOINT}\"|g" \
@@ -104,7 +109,12 @@ jobs:
             --content-type "text/html" \
             --cache-control "no-cache"
 
+          echo "Frontend deployed to s3://${FRONTEND_BUCKET}/index.html"
+
           # Invalidate CloudFront cache so users get the latest version immediately
-          aws cloudfront create-invalidation \
-            --distribution-id ${FRONTEND_DIST_ID} \
-            --paths "/*"
+          if [ -n "$FRONTEND_DIST_ID" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id ${FRONTEND_DIST_ID} \
+              --paths "/*"
+            echo "CloudFront cache invalidated for ${FRONTEND_DIST_ID}"
+          fi
