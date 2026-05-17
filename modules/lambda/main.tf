@@ -61,7 +61,7 @@ resource "aws_lambda_function" "api" {
   filename      = "${path.module}/lambda.zip"
 
   # Only set source_code_hash if the zip exists — avoids plan-time error in CI before build step
-  source_code_hash = fileexists("${path.module}/lambda.zip") ? filebase64sha256("${path.module}/lambda.zip") : null
+  source_code_hash = fileexists("${path.module}/lambda.zip") ? filebase64sha256("${path.module}/lambda.zip") : timestamp()
 
   environment {
     variables = {

@@ -1,3 +1,4 @@
+// v2 — encoding fix applied
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
