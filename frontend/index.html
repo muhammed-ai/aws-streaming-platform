@@ -217,30 +217,57 @@
 
     .row-cards {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       overflow-x: auto;
-      padding-bottom: 8px;
+      padding: 20px 0 20px 0;
       scrollbar-width: none;
     }
 
     .row-cards::-webkit-scrollbar { display: none; }
 
     .card {
-      flex: 0 0 200px;
-      height: 112px;
-      border-radius: 4px;
-      overflow: hidden;
+      flex: 0 0 220px;
+      height: 130px;
+      border-radius: 6px;
+      overflow: visible;
       cursor: pointer;
       position: relative;
       background: var(--card-bg);
-      transition: transform 0.3s, z-index 0s 0.3s;
+      transition: transform 0.3s ease, z-index 0s 0.3s;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
     }
 
     .card:hover {
-      transform: scale(1.3);
+      transform: scale(1.2);
       z-index: 10;
-      transition: transform 0.3s, z-index 0s;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+      transition: transform 0.3s ease, z-index 0s;
+    }
+
+    /* Always show title at bottom of card */
+    .card-title-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+      padding: 20px 8px 8px;
+      border-radius: 0 0 6px 6px;
+    }
+
+    .card-title-text {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
     }
 
     .card-thumb-placeholder {
@@ -250,36 +277,29 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 40px;
+      font-size: 36px;
     }
 
     .card-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+      background: rgba(0,0,0,0.5);
       opacity: 0;
       transition: opacity 0.3s;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
       padding: 10px;
+      border-radius: 6px;
     }
 
     .card:hover .card-overlay { opacity: 1; }
 
-    .card-overlay-title {
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .card-overlay-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .card-overlay-actions { display: flex; gap: 6px; margin-bottom: 4px; }
 
     .card-btn {
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       border: 2px solid rgba(255,255,255,0.7);
       background: rgba(0,0,0,0.5);
@@ -296,7 +316,7 @@
     .card-btn.play  { background: #fff; color: #000; border-color: #fff; }
     .card-btn.play:hover { background: rgba(255,255,255,0.75); }
 
-    .card-status { font-size: 10px; color: #46d369; margin-top: 4px; }
+    .card-status { font-size: 10px; color: #46d369; }
     .card-status.pending { color: #aaa; }
 
     #modal-overlay {
@@ -527,17 +547,21 @@
       card.className = "card";
       const isReady  = video.status === "ready";
       card.innerHTML = `
-        <div class="card-thumb-placeholder">🎬</div>
-        <div class="card-overlay">
-          <div class="card-overlay-title">${video.title || video.video_id}</div>
-          <div class="card-overlay-actions">
-            <div class="card-btn play" title="Play"
-              onclick="event.stopPropagation(); openModal('${video.video_id}', true)">▶</div>
-            <div class="card-btn" title="More info"
-              onclick="event.stopPropagation(); openModal('${video.video_id}', false)">ⓘ</div>
+        <div class="card-inner">
+          <div class="card-thumb-placeholder">🎬</div>
+          <div class="card-title-bar">
+            <div class="card-title-text">${video.title || video.video_id}</div>
           </div>
-          <div class="card-status ${isReady ? "" : "pending"}">
-            ${isReady ? "● Ready" : "● Processing"}
+          <div class="card-overlay">
+            <div class="card-overlay-actions">
+              <div class="card-btn play" title="Play"
+                onclick="event.stopPropagation(); openModal('${video.video_id}', true)">▶</div>
+              <div class="card-btn" title="More info"
+                onclick="event.stopPropagation(); openModal('${video.video_id}', false)">ⓘ</div>
+            </div>
+            <div class="card-status ${isReady ? "" : "pending"}">
+              ${isReady ? "● Ready" : "● Processing"}
+            </div>
           </div>
         </div>`;
       card.addEventListener("click", () => openModal(video.video_id, false));
