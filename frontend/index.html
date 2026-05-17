@@ -482,14 +482,10 @@
 
   <div class="rows-container">
     <div class="row">
-      <div class="row-title">🎬 All Videos</div>
+      <div class="row-title">🎬 My List</div>
       <div class="row-cards" id="all-cards">
         <div class="empty"><span class="spinner"></span> Loading...</div>
       </div>
-    </div>
-    <div class="row" id="ready-row" style="display:none">
-      <div class="row-title">✅ Ready to Watch</div>
-      <div class="row-cards" id="ready-cards"></div>
     </div>
   </div>
 
@@ -533,7 +529,6 @@
         const data = await res.json();
         allVideos  = data.videos || [];
         renderAllCards();
-        renderReadyCards();
         setHero();
       } catch (err) {
         document.getElementById("all-cards").innerHTML =
@@ -576,16 +571,6 @@
         return;
       }
       allVideos.forEach(v => container.appendChild(makeCard(v)));
-    }
-
-    function renderReadyCards() {
-      const ready = allVideos.filter(v => v.status === "ready");
-      if (ready.length === 0) return;
-      const row       = document.getElementById("ready-row");
-      const container = document.getElementById("ready-cards");
-      row.style.display = "block";
-      container.innerHTML = "";
-      ready.forEach(v => container.appendChild(makeCard(v)));
     }
 
     function setHero() {
