@@ -11,11 +11,15 @@ resource "aws_cloudfront_response_headers_policy" "cors" {
     }
 
     access_control_allow_methods {
-      items = ["GET", "HEAD"]
+      items = ["GET", "HEAD", "OPTIONS"]
     }
 
     access_control_allow_origins {
       items = ["*"]
+    }
+
+    access_control_expose_headers {
+      items = ["Content-Length", "Content-Type"]
     }
 
     origin_override = true
@@ -48,7 +52,7 @@ resource "aws_cloudfront_distribution" "cdn" {
 
     # Forces HTTPS — redirects any HTTP requests to HTTPS
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
 
     forwarded_values {

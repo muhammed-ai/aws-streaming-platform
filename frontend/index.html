@@ -631,10 +631,8 @@
 
         if (Hls.isSupported()) {
           if (currentHls) currentHls.destroy();
-          currentHls = new Hls({
-            xhrSetup: (xhr) => { xhr.withCredentials = true; }
-          });
-          // Load via the manifest proxy — segments are pre-signed so no CORS/auth issues
+          // withCredentials must be false when CORS uses wildcard origin (*)
+          currentHls = new Hls({ xhrSetup: (xhr) => { xhr.withCredentials = false; } });
           currentHls.loadSource(manifestUrl);
           currentHls.attachMedia(videoEl);
           currentHls.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
