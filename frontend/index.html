@@ -250,7 +250,6 @@
       transition: transform 0.3s ease, z-index 0s;
     }
 
-    /* Always show title at bottom of card */
     .card-title-bar {
       position: absolute;
       bottom: 0;
@@ -259,6 +258,7 @@
       background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
       padding: 20px 8px 8px;
       border-radius: 0 0 6px 6px;
+      z-index: 2;
     }
 
     .card-title-text {
@@ -288,9 +288,10 @@
       transition: opacity 0.3s;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+      justify-content: flex-start;
       padding: 10px;
       border-radius: 6px;
+      z-index: 3;
     }
 
     .card:hover .card-overlay { opacity: 1; }
@@ -316,8 +317,18 @@
     .card-btn.play  { background: #fff; color: #000; border-color: #fff; }
     .card-btn.play:hover { background: rgba(255,255,255,0.75); }
 
-    .card-status { font-size: 10px; color: #46d369; }
+    .card-status {
+      font-size: 10px;
+      color: #46d369;
+      position: absolute;
+      bottom: 30px;
+      left: 8px;
+      z-index: 4;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
     .card-status.pending { color: #aaa; }
+    .card:hover .card-status { opacity: 1; }
 
     #modal-overlay {
       display: none;
@@ -544,9 +555,6 @@
       card.innerHTML = `
         <div class="card-inner">
           <div class="card-thumb-placeholder">🎬</div>
-          <div class="card-title-bar">
-            <div class="card-title-text">${video.title || video.video_id}</div>
-          </div>
           <div class="card-overlay">
             <div class="card-overlay-actions">
               <div class="card-btn play" title="Play"
@@ -554,9 +562,12 @@
               <div class="card-btn" title="More info"
                 onclick="event.stopPropagation(); openModal('${video.video_id}', false)">ⓘ</div>
             </div>
-            <div class="card-status ${isReady ? "" : "pending"}">
-              ${isReady ? "● Ready" : "● Processing"}
-            </div>
+          </div>
+          <div class="card-status ${isReady ? "" : "pending"}">
+            ${isReady ? "● Ready" : "● Processing"}
+          </div>
+          <div class="card-title-bar">
+            <div class="card-title-text">${video.title || video.video_id}</div>
           </div>
         </div>`;
       card.addEventListener("click", () => openModal(video.video_id, false));
@@ -641,20 +652,50 @@
 
         if (Hls.isSupported()) {
           if (currentHls) currentHls.destroy();
-          // withCredentials must be false when CORS uses wildcard origin (*)
           currentHls = new Hls({ xhrSetup: (xhr) => { xhr.withCredentials = false; } });
           currentHls.loadSource(manifestUrl);
           currentHls.attachMedia(videoEl);
-          currentHls.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+          currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoEl.play();
+            playBtn.innerHTML = "⏸ Pause";
+          });
           currentHls.on(Hls.Events.ERROR, (_, d) => {
             if (d.fatal) {
               errorEl.textContent = `Stream error: ${d.details}`;
+              playBtn.innerHTML = "▶ Play";
               console.error("HLS error", d);
             }
           });
+          // toggle play/pause on button click
+          playBtn.onclick = () => {
+            if (videoEl.paused) {
+              videoEl.play();
+              playBtn.innerHTML = "⏸ Pause";
+            } else {
+              videoEl.pause();
+              playBtn.innerHTML = "▶ Play";
+            }
+          };
+          // sync button text with native video events
+          videoEl.onplay  = () => { playBtn.innerHTML = "⏸ Pause"; };
+          videoEl.onpause = () => { playBtn.innerHTML = "▶ Play"; };
+          videoEl.onended = () => { playBtn.innerHTML = "▶ Play"; };
         } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
           videoEl.src = manifestUrl;
           videoEl.play();
+          playBtn.innerHTML = "⏸ Pause";
+          playBtn.onclick = () => {
+            if (videoEl.paused) {
+              videoEl.play();
+              playBtn.innerHTML = "⏸ Pause";
+            } else {
+              videoEl.pause();
+              playBtn.innerHTML = "▶ Play";
+            }
+          };
+          videoEl.onplay  = () => { playBtn.innerHTML = "⏸ Pause"; };
+          videoEl.onpause = () => { playBtn.innerHTML = "▶ Play"; };
+          videoEl.onended = () => { playBtn.innerHTML = "▶ Play"; };
         } else {
           errorEl.textContent = "HLS not supported in this browser.";
         }
@@ -670,8 +711,14 @@
       document.getElementById("modal-overlay").classList.remove("open");
       document.body.style.overflow = "";
       const videoEl = document.getElementById("modal-video");
+      const playBtn = document.getElementById("modal-play-btn");
       videoEl.pause();
-      videoEl.src = "";
+      videoEl.src    = "";
+      videoEl.onplay  = null;
+      videoEl.onpause = null;
+      videoEl.onended = null;
+      playBtn.innerHTML = "▶ Play";
+      playBtn.disabled  = false;
       if (currentHls) { currentHls.destroy(); currentHls = null; }
     }
 
